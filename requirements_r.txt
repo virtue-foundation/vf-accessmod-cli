@@ -6,4 +6,3 @@ magrittr
 stringr
 raster
 optparse
-plumber

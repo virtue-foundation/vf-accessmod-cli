@@ -3,6 +3,8 @@ FROM mundialis/grass-py3-pdal:stable-ubuntu as build
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y \
         bash \
         libtool \
+        python3 \
+        python3-flask \
 	r-base \
 	r-cran-remotes \
 	&& \
