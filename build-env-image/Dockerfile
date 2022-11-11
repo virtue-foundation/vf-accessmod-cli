@@ -4,7 +4,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
         bash \
         libtool \
         python3 \
-        python3-flask \
 	r-base \
 	r-cran-remotes \
 	&& \
@@ -23,9 +22,11 @@ install = function(pkg){ \
 }" > .Rprofile
 
 COPY requirements_r.txt /build/requirements_r.txt
+COPY requirements.txt /build/requirements.txt
 COPY build_r_packages.sh /build/build_r_packages.sh
 
 RUN chmod +x /build/build_r_packages.sh && \
   /build/build_r_packages.sh "/build/requirements_r.txt"
+RUN pip3 install --no-cache-dir --no-input -r "/build/requirements.txt"
   
 ENTRYPOINT /bin/bash
