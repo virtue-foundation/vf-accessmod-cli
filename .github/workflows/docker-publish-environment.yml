@@ -10,11 +10,13 @@ on:
     branches: [ "main" ]
     paths:
     - build-env-image/**
+    - requirements.txt
     - requirements_r.txt
   pull_request:
     branches: [ "main" ]
     paths:
     - build-env-image/**
+    - requirements.txt
     - requirements_r.txt
 
 env:
@@ -71,6 +73,10 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # Copy requirements.txt to build folder.
+      - name: Copy requirements.txt
+        run: cp requirements.txt build-env-image/requirements.txt
+
+      # Copy requirements_r.txt to build folder.
       - name: Copy requirements_r.txt
         run: cp requirements_r.txt build-env-image/requirements_r.txt
 
