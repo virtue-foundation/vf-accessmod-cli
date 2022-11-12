@@ -1,0 +1,8 @@
+{
+    "image": "ghcr.io/virtue-foundation/vf-accessmod-cli_env:main",
+    "customizations": {
+        "vscode": {
+          "extensions": []
+        }
+      }
+}

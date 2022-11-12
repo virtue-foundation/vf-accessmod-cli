@@ -1,0 +1,407 @@
+[
+  {
+    "class": "rDem",
+    "en": "dem",
+    "fr": "dem",
+    "type": "raster",
+    "colors": "elevation",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rLandCover",
+    "en": "land cover",
+    "fr": "occupation du sol",
+    "type": "raster",
+    "colors": "random",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rLandCoverMerged",
+    "en": "land cover merged",
+    "fr": "occupation du sol fusionnée",
+    "type": "raster",
+    "colors": "random",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rLandCoverBridge",
+    "en": "land cover merged bridge",
+    "fr": "occupation du sol fusionnée pont",
+    "type": "raster",
+    "colors": "random",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "rPopulation",
+    "en": "population",
+    "fr": "population",
+    "type": "raster",
+    "colors": "population&e",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rPopulationResidual",
+    "en": "population residual",
+    "fr": "population résiduelle",
+    "type": "raster",
+    "colors": "population&e",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rSpeed",
+    "en": "speed",
+    "fr": "vitesse",
+    "type": "raster",
+    "colors": "bcyr&e",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "rFriction",
+    "en": "friction",
+    "fr": "friction",
+    "type": "raster",
+    "colors": "bcyr&e",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "rTravelTime",
+    "en": "travel time",
+    "fr": "temps de voyage",
+    "type": "raster",
+    "colors": "slope",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "rNearest",
+    "en": "cost allocation",
+    "fr": "allocation de coût",
+    "type": "raster",
+    "colors": "slope",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "rTravelTimeImported",
+    "en": "imported travel time",
+    "fr": "temps de voyage importé",
+    "type": "raster",
+    "colors": "slope",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rPopulationOnBarrier",
+    "en": "population on barrier",
+    "fr": "population sur barrière",
+    "type": "raster",
+    "colors": "population&e",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "rStackRoad",
+    "en": "stack road",
+    "fr": "pile routes",
+    "type": "raster",
+    "colors": "random",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "rStackLandCover",
+    "en": "stack land cover",
+    "fr": "pile occupation du sol",
+    "type": "raster",
+    "colors": "random",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "rStackBarrier",
+    "en": "stack barrier",
+    "fr": "pile barrière",
+    "type": "raster",
+    "colors": "random",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "rPriority",
+    "en": "priority",
+    "fr": "priorité",
+    "type": "raster",
+    "colors": "random",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "rExclusion",
+    "en": "exclusion",
+    "fr": "exclusion",
+    "type": "raster",
+    "colors": "random",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "vBarrier",
+    "en": "barrier",
+    "fr": "barrière",
+    "type": "vector",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "vRoad",
+    "en": "road",
+    "fr": "route",
+    "type": "vector",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "vFacility",
+    "en": "facility",
+    "fr": "structure",
+    "type": "vector",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "vFacilityNew",
+    "en": "facility scaling up",
+    "fr": "structure mise à l'échelle",
+    "type": "vector",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "vZone",
+    "en": "zone for stat",
+    "fr": "zone pour stat",
+    "type": "vector",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "vExclusion",
+    "en": "exclusion",
+    "fr": "exclusion",
+    "type": "vector",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "tExclusion",
+    "en": "exclusion",
+    "fr": "exclusion",
+    "type": "table",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "tExclusionOut",
+    "en": "exclusion processed",
+    "fr": "exclusion traitée",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tLandCover",
+    "en": "land cover",
+    "fr": "occupation du sol",
+    "type": "table",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "tScenario",
+    "en": "scenario",
+    "fr": "scénario",
+    "type": "table",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "tScenarioOut",
+    "en": "scenario processed",
+    "fr": "scenario traité",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tReferral",
+    "en": "referral",
+    "fr": "référence",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tReferralDist",
+    "en": "referral nearest by dist",
+    "fr": "référence plus proche par dist",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tReferralTime",
+    "en": "referral nearest by time",
+    "fr": "référence plus proche par temps",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tCapacity",
+    "en": "capacity",
+    "fr": "capacité",
+    "type": "table",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "tCapacityOut",
+    "en": "capacity processed",
+    "fr": "capacité traitée",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tCapacityStat",
+    "en": "result geographic coverage analysis",
+    "fr": "résultat analyse couverture géographique",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tCapacityStatNew",
+    "en": "result scaling up analysis",
+    "fr": "résultat analyse mise à l'échelle",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tZonalStat",
+    "en": "zonal coverage",
+    "fr": "couverture zonale",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tSuitability",
+    "en": "suitability",
+    "fr": "pertinence",
+    "type": "table",
+    "colors": "",
+    "importable": true,
+    "internal": false
+  },
+  {
+    "class": "tSuitabilityOut",
+    "en": "suitability processed",
+    "fr": "pertinence traitée",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "tStack",
+    "en": "stack",
+    "fr": "pile",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "tStackRoad",
+    "en": "stack road",
+    "fr": "pile route",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": true
+  },
+  {
+    "class": "tPopDistribAdjustSummary",
+    "en": "summary for the distrubution adjustment",
+    "fr": "resumé de l'ajustement de distribution",
+    "type": "table",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "vCatchment",
+    "en": "catchment",
+    "fr": "aire de captage",
+    "type": "shape",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "vCatchmentNew",
+    "en": "catchment scaling up",
+    "fr": "aire de captage mise à l'échelle",
+    "type": "shape",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "vReferralNetwork",
+    "en": "referral network",
+    "fr": "réseau de références",
+    "type": "vector",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  },
+  {
+    "class": "lAnalysisParameters",
+    "en": "analysis parameters",
+    "fr": "paramètres d'analyse",
+    "type": "config",
+    "colors": "",
+    "importable": false,
+    "internal": false
+  }
+]
