@@ -1,5 +1,7 @@
 FROM mundialis/grass-py3-pdal:stable-ubuntu as build
 
+EXPOSE 5000
+
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y \
         bash \
         libtool \
