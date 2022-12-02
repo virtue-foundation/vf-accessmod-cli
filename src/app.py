@@ -57,7 +57,7 @@ class FilePathHandler:
         self.path_landcover = self._path_combine("esri.tif")
         self.path_rivers = self._path_combine("rivers.geojson")
         self.path_roads = self._path_combine("roads.geojson")
-        self.path_merged_landcover = self._path_combine("landcover_merged.img")
+        self.path_output = self._path_combine(region)
 
     def _path_combine(self, suffix):
         return os.path.join(self.base_path, self.region, self.region + "_" + suffix)
@@ -78,7 +78,7 @@ def run_merge_landcover(region, skip_rivers=False, skip_lakes=False, skip_artifa
         process.extend(["--b2", paths.path_lakes])
     process.extend(["--table", paths.path_land_use_key])
     process.extend(["--name", region])
-    process.extend(["--output_dir", paths.base_path])
+    process.extend(["--output_dir", paths.path_output])
     process.append("--debug-print")
     if not skip_artifacts:
         process.append("--clean-bridges")
