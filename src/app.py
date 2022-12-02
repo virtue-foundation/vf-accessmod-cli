@@ -57,7 +57,7 @@ class FilePathHandler:
         self.path_landcover = self._path_combine("esri.tif")
         self.path_rivers = self._path_combine("rivers.geojson")
         self.path_roads = self._path_combine("roads.geojson")
-        self.path_output = self._path_combine(region)
+        self.path_output = os.path.join(self.base_path, region)
 
     def _path_combine(self, suffix):
         return os.path.join(self.base_path, self.region, self.region + "_" + suffix)
