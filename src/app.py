@@ -60,7 +60,7 @@ class FilePathHandler:
         self.path_merged_landcover = self._path_combine("landcover_merged.img")
 
     def _path_combine(self, suffix):
-        return os.path.join(self.base_path, self.region + "_" + suffix)
+        return os.path.join(self.base_path, self.region, self.region + "_" + suffix)
 
 
 def run_merge_landcover(region, skip_rivers=False, skip_lakes=False, skip_artifacts=False):
