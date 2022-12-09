@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import functools
+import json
 import os
 import subprocess
 from threading import Thread
@@ -114,11 +115,17 @@ def check_request():
 
 @app.route(job_runner.file_transfer_endpoint, methods=['GET', 'POST'])
 def file_transfer():
+    def _get_path_object(json_data):
+        return FilePathHandler(json_data["region"])
+
     def _download():
-        filename = request.get_json()["filename"]
+        json_data = request.get_json()
+        paths = _get_path_object(json_data)
+        filename = json_data["filename"]
         return send_from_directory(directory=paths.path_output, filename=filename)
 
     def _upload():
+        paths = _get_path_object(json.loads(request.form.get('data')))
         # check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')
@@ -134,8 +141,6 @@ def file_transfer():
             file.save(os.path.join(app.config[paths.path_output], filename))
             return redirect(url_for('download_file', name=filename))
 
-    region = request.get_json()["region"]
-    paths = FilePathHandler(region)
     if request.method == 'POST':
         return _upload()
     return _download()
