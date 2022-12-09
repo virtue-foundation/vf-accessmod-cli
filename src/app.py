@@ -145,6 +145,5 @@ def file_transfer():
             return {"region": paths.region, "filename": filename}, 201
 
     if request.method == 'POST':
-        print(request.form["region"])
         return _upload()
     return _download()
