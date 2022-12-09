@@ -1,15 +1,19 @@
 from dataclasses import dataclass
 import functools
+import json
 import os
 import subprocess
 from threading import Thread
 
-from flask import Flask, request
+from flask import Flask, flash, request, redirect, url_for, send_from_directory
+from werkzeug.utils import secure_filename
+
 app = Flask(__name__)
 
 @dataclass
 class JobRunner:
     check_endpoint = "/check"
+    file_transfer_endpoint = "/file_transfer"
     landcover_endpoint = "/merge_landcover"
     error = False
     last_endpoint = None
@@ -37,6 +41,12 @@ class JobRunner:
 
 
 job_runner = JobRunner()
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           os.path.splitext(filename)[1].lower() in [".csv", ".tif", ".img", ".geojson"]
+
 
 def single_job_only(func):
     """Raises an error if a job is already running."""
@@ -97,6 +107,43 @@ def landcover_request():
     Thread(target=run_merge_landcover, args=args).start()
     return job_runner.status_json(), 202
 
+
 @app.get(job_runner.check_endpoint)
 def check_request():
     return job_runner.status_json(), 200
+
+
+@app.route(job_runner.file_transfer_endpoint, methods=['GET', 'POST'])
+def file_transfer():
+    def _get_path_object(json_data):
+        return FilePathHandler(json_data["region"])
+
+    def _download():
+        json_data = request.get_json()
+        paths = _get_path_object(json_data)
+        filename = json_data["filename"]
+        return send_from_directory(directory=paths.path_output, path=filename)
+
+    def _upload():
+        paths = _get_path_object(request.form)
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            print("allowed")
+            filename = secure_filename(file.filename)
+            path = paths.path_output
+            os.makedirs(path, exist_ok=True)
+            file.save(os.path.join(path, filename))
+            return {"region": paths.region, "filename": filename}, 201
+
+    if request.method == 'POST':
+        return _upload()
+    return _download()
