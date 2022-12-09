@@ -122,10 +122,10 @@ def file_transfer():
         json_data = request.get_json()
         paths = _get_path_object(json_data)
         filename = json_data["filename"]
-        return send_from_directory(directory=paths.path_output, filename=filename)
+        return send_from_directory(directory=paths.path_output, path=filename)
 
     def _upload():
-        paths = _get_path_object(json.loads(request.form.get('data')))
+        paths = _get_path_object(request.form)
         # check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')
@@ -137,10 +137,14 @@ def file_transfer():
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
+            print("allowed")
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config[paths.path_output], filename))
-            return redirect(url_for('download_file', name=filename))
+            path = paths.path_output
+            os.makedirs(path, exist_ok=True)
+            file.save(os.path.join(path, filename))
+            return {"region": paths.region, "filename": filename}, 201
 
     if request.method == 'POST':
+        print(request.form["region"])
         return _upload()
     return _download()
