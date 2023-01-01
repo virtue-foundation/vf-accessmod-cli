@@ -184,22 +184,7 @@ COPY build_r_packages.sh /build/build_r_packages.sh
 
 RUN chmod +x /build/build_r_packages.sh && \
   /build/build_r_packages.sh "/build/requirements_r.txt"
-  
-# Remove unused files
-RUN find /usr/ -name '*.pyc' -delete && \
-    find /usr/local/grass/docs/ -name '*.jpg' -exec sh -c '> {}' \; &&\
-    find /usr/local/grass/docs/ -name '*.png' -exec sh -c '> {}' \; &&\
-    rm -rf /var/cache/apk/* && \
-    rm /build/requirements_r.txt && \
-    rm /build/build_r_packages.sh && \
-    find /usr/lib/R/library/ -type f -path '*/include/*' -name '*.h' -delete && \
-    find /usr/lib/R/library/ -type f -path '*/include/*' -name '*.hpp' -delete && \
-    find /usr/lib/R/library/ -type f -path '*/po/*' -name '*.mo' -delete && \
-    find /usr/lib/R/library/ -type f -path '*/doc/*' -name '*.pdf' -delete;
 
-FROM main as final
-
-COPY --from=build_r_packages . .
 COPY requirements.txt /build/requirements.txt
 
 RUN pip3 install --no-cache-dir --no-input -r "/build/requirements.txt"
@@ -215,7 +200,6 @@ ENV AM5_PORT_HTTP=5000 \
     AM5_TMP_PATH="/tmp" \
     AM5_APP_PATH="/app" \
     TZ=UTC \
-    LC_ALL="en_US.UTF-8" \
     _R_SHLIB_STRIP_="true" \
     R_ZIPCMD="/usr/bin/zip" \
     SHELL="/bin/bash" \
@@ -223,11 +207,12 @@ ENV AM5_PORT_HTTP=5000 \
     GISRC="" \
     GRASSBIN="/usr/local/bin/grass" \
     GRASS_SKIP_MAPSET_OWNER_CHECK=1 \
-    GRASS_PYTHON="python3" \
-    GISBASE="/usr/local/grass"
+    GRASS_PYTHON="python3"
 
 # composed env
 ENV GISDBASE="${AM5_DB_PATH}"
+ENV GISBASE="/usr/local/grass"
+ENV GRASS_INSTALLATION="$GISBASE"
 ENV LD_LIBRARY_PATH="$GISBASE/lib"
 ENV GRASS_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 ENV PYTHONPATH="$GISBASE/etc/python:$PYTHONPATH"
