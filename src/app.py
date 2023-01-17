@@ -59,22 +59,22 @@ def single_job_only(func):
 
 
 class FilePathHandler:
-    def __init__(self, region):
-        self.region = region
+    def __init__(self, region_string):
+        self.region_string = region_string
         self.base_path = "/geodata"
+        self.path_output = os.path.join(self.base_path, region_string[0:3])
         self.path_lakes = self._path_combine("lakes.geojson")
         self.path_land_use_key = self._path_combine("land_use_key.csv")
         self.path_landcover = self._path_combine("esri.tif")
         self.path_rivers = self._path_combine("rivers.geojson")
         self.path_roads = self._path_combine("roads.geojson")
-        self.path_output = os.path.join(self.base_path, region)
 
     def _path_combine(self, suffix):
-        return os.path.join(self.base_path, self.region, self.region + "_" + suffix)
+        return os.path.join(self.path_output, self.region_string + "_" + suffix)
 
 
-def run_merge_landcover(region, skip_rivers=False, skip_lakes=False, skip_artifacts=False):
-    paths = FilePathHandler(region)
+def run_merge_landcover(region_string, skip_rivers=False, skip_lakes=False, skip_artifacts=False):
+    paths = FilePathHandler(region_string)
     process = ["Rscript", os.path.join(job_runner.source_path, "mergeLandCover.R")]
     process.extend(["--lcv", paths.path_landcover])
     process.extend(["--roads", paths.path_roads])
@@ -87,7 +87,7 @@ def run_merge_landcover(region, skip_rivers=False, skip_lakes=False, skip_artifa
     else:
         process.extend(["--b2", paths.path_lakes])
     process.extend(["--table", paths.path_land_use_key])
-    process.extend(["--name", region])
+    process.extend(["--name", region_string])
     process.extend(["--output_dir", paths.path_output])
     process.append("--debug-print")
     if not skip_artifacts:
@@ -99,11 +99,11 @@ def run_merge_landcover(region, skip_rivers=False, skip_lakes=False, skip_artifa
 @single_job_only
 def landcover_request():
     request_data = request.get_json()
-    region = request_data["region"]
+    region_string = request_data["region_string"]
     skip_rivers = request_data.get("skip_rivers", False)
     skip_lakes = request_data.get("skip_lakes", False)
     skip_artifacts = request_data.get("skip_artifacts", False)
-    args = [region, skip_rivers, skip_lakes, skip_artifacts]
+    args = [region_string, skip_rivers, skip_lakes, skip_artifacts]
     Thread(target=run_merge_landcover, args=args).start()
     return job_runner.status_json(), 202
 
@@ -116,7 +116,7 @@ def check_request():
 @app.route(job_runner.file_transfer_endpoint, methods=['GET', 'POST'])
 def file_transfer():
     def _get_path_object(json_data):
-        return FilePathHandler(json_data["region"])
+        return FilePathHandler(json_data["region_string"])
 
     def _download():
         json_data = request.get_json()
@@ -142,7 +142,7 @@ def file_transfer():
             path = paths.path_output
             os.makedirs(path, exist_ok=True)
             file.save(os.path.join(path, filename))
-            return {"region": paths.region, "filename": filename}, 201
+            return {"region_string": paths.region_string, "filename": filename}, 201
 
     if request.method == 'POST':
         return _upload()
