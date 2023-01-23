@@ -44,9 +44,9 @@ option_list = list(
   make_option("--roads", type="character", default=NULL, 
               help="path to roads file", metavar="character"),
   make_option("--b1", type="character", default=NULL, 
-              help="path to barrier file (rivers/lakes)", metavar="character"),
+              help="path to barrier file (rivers)", metavar="character"),
   make_option("--b2", type="character", default=NULL, 
-              help="path to barrier file (rivers/lakes)", metavar="character"),
+              help="path to barrier file (lakes)", metavar="character"),
   make_option("--table", type="character", default=NULL, 
               help="path to land use key", metavar="character"),
   make_option("--debug-print", type="character", default=F, action="store_true",
@@ -91,16 +91,11 @@ if(debug_print) print("Arguments accepted. Setting projection")
 # Make sure to stay in the same mapset
 current_mapset <- execGRASS("g.mapset", flags="p", intern=T)
 if(debug_print) print(paste("Current mapset is ", current_mapset))
-current_proj <- tryCatch(execGRASS("g.proj", flags="p", intern=T), error=function(e) NULL)
-current_proj_isempty <- any(str_detect(current_proj, "WARNING")) || (length(current_proj) == 0)
-if(debug_print) print(current_proj)
-if(current_proj_isempty) {
-  print("Current proj is empty; setting new proj")
-  execGRASS("g.mapset", parameters=list(mapset="PERMANENT"))
-  execGRASS("g.proj", flags="c", parameters=list(georef=path_lcv))
-  execGRASS("g.mapset", parameters=list(mapset=current_mapset))
-  print("Set new proj")
-}
+print("Setting new proj")
+execGRASS("g.mapset", parameters=list(mapset="PERMANENT"))
+execGRASS("g.proj", flags="c", parameters=list(georef=path_lcv))
+execGRASS("g.mapset", parameters=list(mapset=current_mapset))
+print("Set new proj")
 
 ########################## Land cover
 # Import
@@ -162,7 +157,7 @@ if(path_barrier != "null") {
     
     # preview table of barrier features
     barrier_table = amGetTableFeaturesCount("v_barrier", types = c("lines", "areas", "points"))
-    barrier_type = barrier_table[which.max(barrier_table$count), "type"] %>% str_remove("s")
+    barrier_type = barrier_table[which.max(barrier_table$count), "type"] %>% gsub("s$", "", .)
     if(barrier_type != "line") {
       print("Please check that linear barrier file is lines")
       stop()
@@ -207,7 +202,7 @@ if(path_barrier_poly != "null") {
     # preview table of barrier features
     barrier_poly_table = amGetTableFeaturesCount("v_barrier_poly", types = c("lines", "areas", "points"))
     if(debug_print) print(barrier_poly_table)
-    barrier_poly_type = barrier_poly_table[which.max(barrier_poly_table$count), "type"] %>% str_remove("s")
+    barrier_poly_type = barrier_poly_table[which.max(barrier_poly_table$count), "type"] %>% gsub("s$", "", .)
     if(barrier_poly_type != "area") {
       print("Please check that area barrier file is areas")
       stop()
@@ -295,8 +290,8 @@ for (i in 1:tblN) {
   # if (isTRUE(class < 1000)) {
   #   class <- 1000 + class
   # }
-  label <- str_replace(label, "/", "_")
-  labelRule <- str_replace(label, "/", " ")
+  label <- gsub("/", "_", label)
+  labelRule <- gsub("/", " ", label)
   tmpFile <- tempfile()
   tmpRules <- paste0(class, "\t", labelRule)
   if (debug_print) print(tmpRules)
