@@ -7,7 +7,7 @@ name: Docker
 
 on:
   push:
-    branches: [ "main","dev-test-alt-environment" ]
+    branches: [ "main" ]
     paths:
     - build-env-image/**
     - requirements.txt
