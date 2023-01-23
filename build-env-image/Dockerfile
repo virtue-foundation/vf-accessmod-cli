@@ -12,6 +12,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
         libicu70 \
         libjpeg-turbo8 \
         libjsoncpp25 \
+        libgdal30 \
         libgeos3.10.2 \
         libgeotiff5 \
         liblaszip8 \
@@ -23,6 +24,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
         libtool \
         libtiff5 \
         libunwind8 \
+        locales \
         musl \
         musl-tools \
         python3 \
@@ -35,7 +37,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
 	&& \
     rm -rf /var/lib/apt/lists/*
 
-FROM main as build_grass
+FROM main as build_r_env
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y \
+      libgdal-dev \
+      && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM build_r_env as build_grass
 
 ARG GRASS_VERSION
 
@@ -63,6 +72,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
       libcairo2-dev \
       fftw-dev \
       libfreetype-dev \
+      libgdal-dev \
       g++ \
       gcc \
       libgeos-dev \
@@ -142,10 +152,15 @@ RUN cp /usr/local/grass78/gui/wxpython/xml/module_items.xml module_items.xml; \
     mkdir -p /usr/local/grass78/gui/wxpython/xml/; \
     mv module_items.xml /usr/local/grass78/gui/wxpython/xml/module_items.xml; \
     apt-get remove -y grass-dev
-    
-FROM main as final
 
-ENV LC_ALL="en_US.UTF-8"
+FROM build_r_env as build_r_packages
+
+# Fix for locales
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8
 
 # Copy GRASS GIS from build image
 COPY --from=build_grass /usr/local/bin/grass* /usr/local/bin/grass
@@ -165,11 +180,13 @@ install = function(pkg){ \
 }" > .Rprofile
 
 COPY requirements_r.txt /build/requirements_r.txt
-COPY requirements.txt /build/requirements.txt
 COPY build_r_packages.sh /build/build_r_packages.sh
 
 RUN chmod +x /build/build_r_packages.sh && \
   /build/build_r_packages.sh "/build/requirements_r.txt"
+
+COPY requirements.txt /build/requirements.txt
+
 RUN pip3 install --no-cache-dir --no-input -r "/build/requirements.txt"
 
 # appended to existing ones.
@@ -183,7 +200,6 @@ ENV AM5_PORT_HTTP=5000 \
     AM5_TMP_PATH="/tmp" \
     AM5_APP_PATH="/app" \
     TZ=UTC \
-    LC_ALL="en_US.UTF-8" \
     _R_SHLIB_STRIP_="true" \
     R_ZIPCMD="/usr/bin/zip" \
     SHELL="/bin/bash" \
@@ -191,15 +207,18 @@ ENV AM5_PORT_HTTP=5000 \
     GISRC="" \
     GRASSBIN="/usr/local/bin/grass" \
     GRASS_SKIP_MAPSET_OWNER_CHECK=1 \
-    GRASS_PYTHON="python3" \
-    GISBASE="/usr/local/grass"
+    GRASS_PYTHON="python3"
 
 # composed env
 ENV GISDBASE="${AM5_DB_PATH}"
+ENV GISBASE="/usr/local/grass"
+ENV GRASS_INSTALLATION="$GISBASE"
 ENV LD_LIBRARY_PATH="$GISBASE/lib"
 ENV GRASS_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 ENV PYTHONPATH="$GISBASE/etc/python:$PYTHONPATH"
 ENV PATH=$GISBASE/bin:$GISBASE/scripts:$PATH
+
+RUN mkdir -p "$GISDBASE"
 
 WORKDIR /app
 
