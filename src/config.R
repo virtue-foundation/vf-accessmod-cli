@@ -14,13 +14,11 @@ config <- list()
 #config$sepClass <- ""
 
 
-#config$gisBase = "C:/Program Files/GRASS GIS 8.2"
-
+config$gisBase = Sys.getenv(x = "GISBASE")
 #setwd(dirname(dirname(parent.frame(2)$ofile)))
-config$GrassDataBase <- normalizePath("grassdb/")
+config$GrassDataBase <- Sys.getenv(x = "GISDBASE")
 # config$pathCacheDir <- normalizePath("/data/cache/")
 # config$pathGrassDemo <- normalizePath("config/data/demo")
-
 config$pathDictDir <- normalizePath("dictionary/")
 config$pathDictMain <- normalizePath(file.path(config$pathDictDir, "main.json"))
 config$pathClasses <- file.path(config$pathDictDir, "classes.json")
@@ -29,7 +27,13 @@ config$dataClass <- fromJSON(config$pathClasses)
 # get a version grouped by class with class id as key
 config$dataClassList <- dlply(config$dataClass, .(class), c)
 
-config$vector_key = "osmid"
+config$vector_key = "cat"
+
+config$listTranspMod <- list(
+  WALKING = list(rastVal = 1000),
+  BICYCLING = list(rastVal = 2000),
+  MOTORIZED = list(rastVal = 3000)
+)
 
 # character separator
 config$sepTagFile <- "_"
