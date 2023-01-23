@@ -6,6 +6,10 @@ amRastExists <- function(filter = "", mapset = NULL) {
   return(amLayerExists(filter, mapset, "raster"))
 }
 
+amVectExists <- function(filter = "", mapset = NULL) {
+  return(amLayerExists(filter, mapset, "vector"))
+}
+
 amSubPunct <- function(vect,
                        sep = "_",
                        rmTrailingSep = T,
@@ -254,7 +258,7 @@ grass_print_info <- function(map, type=c("raster", "vector")) {
 }
 
 # Import a new data object, with different parameters based on object type
-import_layer <- function(path, type, layer_name, ignore_proj=F) {
+import_layer <- function(path, type, layer_name, ignore_proj=F, overwrite=F) {
   
   import_fn = switch(type, raster="r.in.gdal", vector="v.in.ogr")
   
@@ -270,11 +274,11 @@ import_layer <- function(path, type, layer_name, ignore_proj=F) {
     }
   }
   
-  if(ignore_proj) {
-    execGRASS(import_fn, flags="o", parameters=import_parameters)
-  } else {
-    execGRASS(import_fn, parameters=import_parameters)
-  }
+  flags = c()
+  if(ignore_proj) flags=c(flags, "o")
+  if(overwrite) flags=c(flags, "overwrite")
+
+  execGRASS(import_fn, flags=flags, parameters=import_parameters)
 }
 
 # Check if an object by a certain name already exists
@@ -312,6 +316,25 @@ get_att_table <- function(map, cla_col="class", lab_col="label") {
   raw = execGRASS("db.select", sql=paste0("select distinct ", cla_col, ",", lab_col, " from ", map), intern=T)
   table = read.csv(text = raw, header=T, stringsAsFactors = F, sep="|") 
   return(table)
+}
+
+#' Parse scaling up coefficient options
+#' @param opt String of option with paired argument separated by sepAssign, separated by given sepItem
+#' @param sepAssign Character. Separator of assignement. Default is "="
+#' @param sepItem Character. Separarator of items. Default is ";"
+amParseOptions <- function(opt, sepItem = ";", sepAssign = "=") {
+  optList <- list()
+  if (!is.null(opt)) {
+    opt <- unlist(strsplit(opt, sepItem))
+    if (length(opt) > 0) {
+      opt <- strsplit(opt, sepAssign)
+      for (o in opt) {
+        l <- length(o)
+        optList[o[l - 1]] <- o[l]
+      }
+    }
+  }
+  return(optList)
 }
 
 
@@ -423,4 +446,156 @@ amCleanTableFromGrass <- function(text, sep = "|", header = TRUE, cols = NULL, .
     tbl <- tbl[cols]
   }
   return(tbl)
+}
+
+#' Compose random char name
+#' @param prefix Prefix of the resulting string
+#' @param suffix Suffix of the resultiing string
+#' @param n Number of random letters
+#' @param collapse Character to join strings
+#' @return String with random letters
+#' @export
+amRandomName <- function(prefix = NULL, suffix = NULL, n = 20, cleanString = FALSE, collapse = "_") {
+  if (cleanString) {
+    prefix <- amSubPunct(prefix, "_")
+    suffix <- amSubPunct(suffix, "_")
+  }
+  rStr <- paste(letters[round(runif(n) * 24)], collapse = "")
+  str <- c(prefix, rStr, suffix)
+  paste(str, collapse = collapse)
+}
+
+#' @param tableFacilities Facilities table with config$vectorKey attr
+#' @param inputFacilities Facilities layer name
+#' @return Name of the final facility layer
+amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
+  #
+  # WORKAROUND for solving the issue #209
+  # That produced a "Argument list to long in v.extract"
+  # The error visible was "Cannot open connection", but it's
+  # unrelated to the actual error.
+  # Strategy :
+  # Using smallest subset OR if all selected, don't extract
+  
+  if(grepl("-", select_col) | grepl("^_", select_col)) {
+    select_col <- sub("-", "_", select_col)
+    select_col <- sub("^_", "x", select_col)
+    print(paste("Reformatted subset column name to", select_col))
+  }
+  is_valid_select_col <- select_col %in% names(tableFacilities)
+  if(!is_valid_select_col) stop("Choose a valid subset column")
+
+  idHfAll <- tableFacilities[[config$vector_key]]
+  idHfSelect <- tableFacilities[tableFacilities[select_col]==1, config$vector_key]
+  fName <- amRandomName("tmp__")
+  idHfNotSelect <- idHfAll[!idHfAll %in% idHfSelect]
+  hasMoreSelect <- length(idHfNotSelect) < length(idHfSelect)
+  hasAllSelect <- identical(idHfSelect, idHfAll)
+  inputHfFinal <- ifelse(hasAllSelect, inputFacilities, fName)
+  
+  if (!hasAllSelect) {
+    if (hasMoreSelect) {
+      qSql <- paste0(config$vector_key, " NOT IN ( ", paste0("'", idHfNotSelect, "'", collapse = ","), " )")
+    } else {
+      qSql <- sprintf(
+        " %1$s IN ( %2$s )",
+        config$vector_key,
+        paste0("'", idHfSelect, "'", collapse = ",")
+      )
+    }
+    
+    print("Subsetting the facilities table using the following query:")
+    print(qSql)
+    
+    #
+    # Create a temporary copy
+    #
+
+    execGRASS(
+      "v.extract",
+      flags = "overwrite",
+      input = inputFacilities,
+      where = qSql,
+      output = inputHfFinal
+    )
+  }
+  
+  return(inputHfFinal)
+}
+
+
+
+
+#' Evaluate disk space available
+#' @return disk space available in MB
+sysEvalFreeMbDisk <- function() {
+  # free <- system('df --output=avail -BM "$PWD" | sed "1d;s/[^0-9]//g"',intern=T)
+  # Alpine
+  #                                                  * - > $4
+  # Filesystem           1M-blocks      Used Available Use% Mounted on
+  # overlay                 120695    117784         0 100% /
+  free <- system("df -BM $GISDBASE | tail -n1 | awk '{print $4}'", intern = T)
+  free <- str_remove(free, "[:alpha:]")
+  return(as.integer(free))
+}
+
+#' Evaluate disk space total
+#' @return disk space available in MB
+sysEvalSizeMbDisk <- function() {
+  # free <- system('df --output=size -BM "$PWD" | sed "1d;s/[^0-9]//g"',intern=T)
+  #
+  # Alpine
+  #                                        * -> $3
+  # Filesystem           1M-blocks      Used Available Use% Mounted on
+  # overlay                 120695    117784         0 100% /
+  used <- system("df -BM $GISDBASE | tail -n1 | awk '{print $3}'", intern = T)
+  return(as.integer(used))
+}
+
+#' Evalutate memory available. This is experimental
+#' @return Available memory in MB
+sysEvalFreeMbMem <- function() {
+  sys <- Sys.info()["sysname"]
+  free <- 300
+  
+  switch(sys,
+         "Darwin" = {
+           memTot <- as.integer(system("sysctl hw.memsize | awk '{ print $2 / (2^10)^2}'", intern = T))
+           memActive <- as.integer(system("vm_stat | awk '/^Pages active/ { print ($3 * 4096) / (2^10)^2}'", intern = T))
+           memFree <- as.integer(system("vm_stat | awk '/^Pages free/ { print ($3 * 4096) / (2^10)^2}'", intern = T))
+           memPurgeable <- as.integer(system("vm_stat | awk '/^Pages purgeable/ { print ($3 * 4096) / (2^10)^2}'", intern = T))
+           
+           free <- memTot - memActive
+         },
+         "Linux" = {
+           memTot <- as.integer(system("cat /proc/meminfo | awk '/^MemTotal:/ {print $2/ (2^10)}'", intern = T))
+           memActive <- as.integer(system("cat /proc/meminfo | awk '/^Active:/ {print $2/ (2^10)}'", intern = T))
+           memFree <- as.integer(system("cat /proc/meminfo | awk '/^MemFree:/ {print $2/ (2^10)}'", intern = T))
+           memCached <- as.integer(system("cat /proc/meminfo | awk '/^Cached:/ {print $2/(2^10)}'", intern = T))
+           
+           free <- memTot - memActive
+         }
+  )
+  
+  return(as.integer(free))
+}
+
+#' Reset AccessMod region
+#' @param {Character} rasters Rasters to set the region
+#' @param {Character} vectors vectors to set the region
+amRegionSet <- function(rasters = character(0), vectors = character(0)) {
+  hasRasters <- !amRastExists(rasters)
+  hasVectors <- !amVectExists(vectors)
+  
+  if (!hasRasters && !hasVectors) {
+    warnings("amRegionSet : no layer available to update region")
+    return
+  }
+  
+  execGRASS("g.region",
+            raster = rasters,
+            vector = vectors,
+            #align = config$mapDem,
+            flags = c("o")
+  )
 }
