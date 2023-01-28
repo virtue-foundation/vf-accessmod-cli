@@ -75,7 +75,7 @@ path_barrier <- clean_filepath(opt$b1)
 path_barrier_poly <- clean_filepath(opt$b2)
 path_table <- clean_filepath(opt$table)
 input_region_name <- opt$name
-debug_print <- opt$`--debug_print`
+debug_print <- opt$`debug_print`
 debug_store <- opt$`debug-store`
 clean_bridges <- opt$`clean-bridges`
 output_dir <- clean_filepath(opt$output_dir)
