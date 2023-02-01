@@ -213,7 +213,7 @@ args_traveltime <- switch(analysis_type,
                                              memory = NULL, rawMode = FALSE, knights_move = knights_move)
 )
 
-filename_speed_friction_raster <- paste(output_region, bln_speed_or_friction, "raster.img", sep="_")
+filename_speed_friction_raster <- paste(output_region, bln_speed_or_friction, ".img", sep="_")
 filename_speed_friction_report <- paste(output_region, bln_speed_or_friction, "report.txt", sep="_")
 filename_traveltime_raster <- paste0(paste(output_region, "travel_time", facilities_subset, sep="_"), ".img")
 filename_traveltime_report <- paste(output_region, facilities_subset, "travel_time.txt", sep="_")
