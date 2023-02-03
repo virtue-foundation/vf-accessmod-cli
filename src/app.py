@@ -15,6 +15,7 @@ class JobRunner:
     check_endpoint = "/check"
     file_transfer_endpoint = "/file_transfer"
     landcover_endpoint = "/merge_landcover"
+    accessibility_endpoint = "/accessibility_analysis"
     error = False
     last_endpoint = None
     running = False
@@ -24,6 +25,8 @@ class JobRunner:
     def _start_job(self, job):
         if job == "landcover":
             self.last_endpoint = self.landcover_endpoint
+        elif job == "accessibility":
+            self.last_endpoint = self.accessibility_endpoint
         else:
             raise ValueError("Unexpected job type")
         self.running = True
@@ -62,15 +65,23 @@ class FilePathHandler:
     def __init__(self, region_string):
         self.region_string = region_string
         self.base_path = "/geodata"
+        self.gadm_filename_prefix = "gadm41_"
         self.path_output = os.path.join(self.base_path, region_string[0:3])
         self.path_lakes = self._path_combine("lakes.geojson")
         self.path_land_use_key = self._path_combine("land_use_key.csv")
         self.path_landcover = self._path_combine("esri.tif")
         self.path_rivers = self._path_combine("rivers.geojson")
         self.path_roads = self._path_combine("roads.geojson")
+        self.path_srtm = self._path_combine("srtm.tif")
+        self.path_merged_landcover = self._path_combine("merged_landcover.img")
+        self.path_facilities = self._path_combine("facilities.geojson")
+        self.path_scenario_table = self._path_combine("scenario_table.csv")
 
     def _path_combine(self, suffix):
         return os.path.join(self.path_output, self.region_string + "_" + suffix)
+
+    def _get_gadm_path(self, level):
+        return os.path.join(self.path_output, f"{self.gadm_filename_prefix}{self.region_string}_l{level}")
 
 
 def run_merge_landcover(region_string, skip_rivers=False, skip_lakes=False, skip_artifacts=False):
@@ -89,10 +100,31 @@ def run_merge_landcover(region_string, skip_rivers=False, skip_lakes=False, skip
     process.extend(["--table", paths.path_land_use_key])
     process.extend(["--name", region_string])
     process.extend(["--output_dir", paths.path_output])
-    process.append("--debug-print")
+    process.append("--debug_print")
     if not skip_artifacts:
         process.append("--clean-bridges")
     job_runner.tracked_subprocess(process, "landcover")
+
+
+def run_accessibility_analysis(region_string, facilities_subset=None, knights_move=False, anisotropic=True):
+    paths = FilePathHandler(region_string)
+    process = ["Rscript", os.path.join(job_runner.source_path, "accessibilityAnalysis.R")]
+    process.extend(["--lcv", paths.path_merged_landcover])
+    process.extend(["--dem", paths.path_srtm])
+    process.extend(["--scenarios", paths.path_scenario_table])
+    process.extend(["--facilities", paths.path_facilities])
+    process.extend(["--name", region_string])
+    if facilities_subset:
+        process.extend(["--facilities_subset", facilities_subset])
+    if anisotropic:
+        process.extend(["--analysis_type", "anisotropic"])
+    else:
+        process.extend(["--analysis_type", "isotropic"])
+    if knights_move:
+        process.append("--knights_move")
+    process.extend(["--output_dir", paths.path_output])
+    process.append("--debug_print")
+    job_runner.tracked_subprocess(process, "accessibility")
 
 
 @app.post(job_runner.landcover_endpoint)
@@ -105,6 +137,19 @@ def landcover_request():
     skip_artifacts = request_data.get("skip_artifacts", False)
     args = [region_string, skip_rivers, skip_lakes, skip_artifacts]
     Thread(target=run_merge_landcover, args=args).start()
+    return job_runner.status_json(), 202
+
+
+@app.post(job_runner.accessibility_endpoint)
+@single_job_only
+def accssibility_request():
+    request_data = request.get_json()
+    region_string = request_data["region_string"]
+    facilities_subset = request_data.get("facilities_subset", None)
+    knights_move = request_data.get("knights_move", False)
+    anisotropic = request_data.get("anisotropic", True)
+    args = [region_string, facilities_subset, knights_move, anisotropic]
+    Thread(target=run_accessibility_analysis, args=args).start()
     return job_runner.status_json(), 202
 
 

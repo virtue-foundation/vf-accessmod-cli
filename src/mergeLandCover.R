@@ -49,7 +49,7 @@ option_list = list(
               help="path to barrier file (lakes)", metavar="character"),
   make_option("--table", type="character", default=NULL, 
               help="path to land use key", metavar="character"),
-  make_option("--debug-print", type="character", default=F, action="store_true",
+  make_option("--debug_print", type="character", default=F, action="store_true",
               help="Print diagnostic info to std-out", metavar="character"),
   make_option("--debug-store", type="character", default=F, action="store_true",
               help="Write GRASS objs into R session env", metavar="character"),
@@ -75,7 +75,7 @@ path_barrier <- clean_filepath(opt$b1)
 path_barrier_poly <- clean_filepath(opt$b2)
 path_table <- clean_filepath(opt$table)
 input_region_name <- opt$name
-debug_print <- opt$`debug-print`
+debug_print <- opt$`debug_print`
 debug_store <- opt$`debug-store`
 clean_bridges <- opt$`clean-bridges`
 output_dir <- clean_filepath(opt$output_dir)
