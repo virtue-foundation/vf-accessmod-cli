@@ -20,7 +20,6 @@ class JobRunner:
     last_endpoint = None
     running = False
     source_path = "/workspaces/vf-accessmod-cli/src"
-    log_path = os.path.join(source_path, "output_log.txt")
 
     def _start_job(self, job):
         if job == "landcover":

@@ -80,7 +80,7 @@ debug_store <- opt$`debug-store`
 clean_bridges <- opt$`clean-bridges`
 output_dir <- clean_filepath(opt$output_dir)
 
-sink(paste0(output_dir, "/", "output_log.txt"), append=FALSE, split=TRUE, type = "output")
+sink(paste0(output_dir, "/", "merge_landcover.log"), append=FALSE, split=TRUE, type = "output")
 
 if(debug_print) print("Arguments accepted. Setting projection")
 
