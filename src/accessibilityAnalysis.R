@@ -89,7 +89,7 @@ knights_move <- opt$knights_move
 output_dir <- clean_filepath(opt$output_dir)
 debug_print <- opt$debug_print
 
-sink(paste0(output_dir, "/", "accessibility_analysis.log"), append=FALSE, split=TRUE, type = "output")
+sink(paste0("../logs/", "accessibility_analysis.log"), append=FALSE, split=TRUE, type = "output")
 
 if(debug_print) print("Arguments accepted. Setting projection")
 

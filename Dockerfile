@@ -1,6 +1,7 @@
 FROM ghcr.io/virtue-foundation/vf-accessmod-cli_env:main
 
 COPY src/ /workspaces/vf-accessmod-cli/src/
+RUN mkdir /workspaces/vf-accessmod-cli/logs
 WORKDIR /workspaces/vf-accessmod-cli/src
 
 RUN mkdir "/geodata"
