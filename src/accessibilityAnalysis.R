@@ -40,7 +40,7 @@ option_list = list(
   make_option("--scenarios", type="character", default=NULL,
               help="Path to scenario table file (required)", metavar="character"),
   make_option("--facilities", type="character", default=NULL,
-              help="Path to scenario table file (required)", metavar="character"),
+              help="Path to facilties file (required)", metavar="character"),
   # Required Parameters
   make_option("--name", type="character", default=NULL,
               help="Name of the region / output save  name (required)", metavar="character"),
@@ -50,7 +50,7 @@ option_list = list(
   # Optional parameters
   make_option("--max_time", type="double", default=0,
               help="Maximum duration of travel considered", metavar="character"),
-  make_option("--facilities_subset", type="character", default="all",
+  make_option("--f_subset", type="character", default="all",
               help="Name of boolean facilities column for inclusion in subset", metavar="character"),
   make_option("--knights_move", type="character", default=F, action="store_true",
               help="Allow knight's move for traversing the landscape", metavar="character"),
@@ -65,6 +65,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "scenarios", "facilities", "name", "analysis_type")
 missing_inputs <- setdiff(required_inputs, names(opt))
+sink(paste0("../logs/", "accessibility_analysis.log"), append=FALSE, split=TRUE, type = "output")
 if(length(missing_inputs)>0) {
   print("Check your input args")
   stop()
@@ -84,12 +85,10 @@ if(!(analysis_type %in% c("isotropic", "iso", "anisotropic", "aniso"))) {
   stop()
 }
 max_time <- opt$max_time
-facilities_subset <- opt$facilities_subset
+facilities_subset <- opt$f_subset
 knights_move <- opt$knights_move
 output_dir <- clean_filepath(opt$output_dir)
 debug_print <- opt$debug_print
-
-sink(paste0("../logs/", "accessibility_analysis.log"), append=FALSE, split=TRUE, type = "output")
 
 if(debug_print) print("Arguments accepted. Setting projection")
 

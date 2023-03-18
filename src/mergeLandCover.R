@@ -64,6 +64,7 @@ opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
 desired_inputs <- c("lcv", "roads", "b1", "b2", "help")
 missing_inputs <- setdiff(desired_inputs, names(opt))
+sink(paste0("../logs/", "merge_landcover.log"), append=FALSE, split=TRUE, type = "output")
 if( length(missing_inputs)>0 && missing_inputs != "b2" ) {
   print("Check your input args")
   stop()
@@ -79,8 +80,6 @@ debug_print <- opt$`debug_print`
 debug_store <- opt$`debug-store`
 clean_bridges <- opt$`clean-bridges`
 output_dir <- clean_filepath(opt$output_dir)
-
-sink(paste0("../logs/", "merge_landcover.log"), append=FALSE, split=TRUE, type = "output")
 
 if(debug_print) print("Arguments accepted. Setting projection")
 
