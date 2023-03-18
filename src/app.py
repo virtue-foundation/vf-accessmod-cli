@@ -148,11 +148,11 @@ def run_coverage_analysis(region_string, max_travel_time, facilities_subset=None
     process.extend(["--pop", paths.path_population])
     process.extend(["--f_order", processing_order_column])
     process.extend(["--f_name", facility_name_column])
-    process.extend(["--max_time", max_travel_time])
+    process.extend(["--max_time", str(max_travel_time)])
     if capacity_column:
         process.extend(["--f_capacity", capacity_column])
     if gadm_level:
-        process.extend(["--admin", paths.get_gadm_path(gadm_level))
+        process.extend(["--admin", paths.get_gadm_path(gadm_level)])
         process.extend(["--zonal_column", paths.get_gadm_column(gadm_level)])
     _add_common_arguments(paths, process, region_string)
     job_runner.tracked_subprocess(process, "coverage")
