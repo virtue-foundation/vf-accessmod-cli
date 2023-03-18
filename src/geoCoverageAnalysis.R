@@ -281,8 +281,6 @@ hfIdx <- "xid"
 hfLab <- input_f_name_col
 hfIdxTo <- "xid"
 hfLabTo <- input_f_name_col
-zoneFieldLabel <- "NAME_4"
-zoneFieldId <- input_zonal_col
 capField <- input_f_capacity_col
 orderField <- input_f_order_col
 
@@ -354,7 +352,7 @@ if (!keepFullHfTable) {
     addColumnsPopCoverageExtended = FALSE,
     zonalCoverage = zonalCoverage,
     zoneFieldId = "cat",
-    zoneFieldLabel = zoneFieldLabel,
+    zoneFieldLabel = input_zonal_col,
     hfOrder = "tableOrder",
     hfOrderSorting = "hfOrderDesc",
     tableScenario = t_scenarios,
