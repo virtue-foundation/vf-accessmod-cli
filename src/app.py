@@ -16,6 +16,7 @@ class JobRunner:
     file_transfer_endpoint = "/file_transfer"
     landcover_endpoint = "/merge_landcover"
     accessibility_endpoint = "/accessibility_analysis"
+    coverage_endpoint = "/coverage_analysis"
     error = False
     last_endpoint = None
     running = False
@@ -26,6 +27,8 @@ class JobRunner:
             self.last_endpoint = self.landcover_endpoint
         elif job == "accessibility":
             self.last_endpoint = self.accessibility_endpoint
+        elif job == "coverage":
+            self.last_endpoint = self.coverage_endpoint
         else:
             raise ValueError("Unexpected job type")
         self.running = True
@@ -60,27 +63,52 @@ def single_job_only(func):
     return wrapper
 
 
+def _add_common_arguments(path_object, command_list, region_string):
+    command_list.extend(["--name", region_string])
+    command_list.extend(["--output_dir", path_object.path_output])
+    command_list.append("--debug_print")
+
+
+def _add_accessibility_arguments(path_object, command_list, facilities_subset, knights_move, anisotropic):
+    command_list.extend(["--lcv", path_object.path_merged_landcover])
+    command_list.extend(["--dem", path_object.path_srtm])
+    command_list.extend(["--scenarios", path_object.path_scenario_table])
+    command_list.extend(["--facilities", path_object.path_facilities])
+    if facilities_subset:
+        command_list.extend(["--f_subset", facilities_subset])
+    if anisotropic:
+        command_list.extend(["--analysis_type", "anisotropic"])
+    else:
+        command_list.extend(["--analysis_type", "isotropic"])
+    if knights_move:
+        command_list.append("--knights_move")
+
+
 class FilePathHandler:
     def __init__(self, region_string):
         self.region_string = region_string
         self.base_path = "/geodata"
         self.gadm_filename_prefix = "gadm41_"
         self.path_output = os.path.join(self.base_path, region_string[0:3])
-        self.path_lakes = self._path_combine("lakes.geojson")
+        self.path_lakes = self._path_combine("lakes.gpkg")
         self.path_land_use_key = self._path_combine("land_use_key.csv")
         self.path_landcover = self._path_combine("esri.tif")
-        self.path_rivers = self._path_combine("rivers.geojson")
-        self.path_roads = self._path_combine("roads.geojson")
+        self.path_rivers = self._path_combine("rivers.gpkg")
+        self.path_roads = self._path_combine("roads.gpkg")
         self.path_srtm = self._path_combine("srtm.tif")
         self.path_merged_landcover = self._path_combine("merged_landcover.img")
-        self.path_facilities = self._path_combine("facilities.geojson")
+        self.path_facilities = self._path_combine("facilities.gpkg")
         self.path_scenario_table = self._path_combine("scenario_table.csv")
+        self.path_population = self._path_combine("population.tif")
 
     def _path_combine(self, suffix):
         return os.path.join(self.path_output, self.region_string + "_" + suffix)
 
-    def _get_gadm_path(self, level):
-        return os.path.join(self.path_output, f"{self.gadm_filename_prefix}{self.region_string}_l{level}")
+    def get_gadm_path(self, level):
+        return os.path.join(self.path_output, f"{self.gadm_filename_prefix}{self.region_string}_l{level}.gpkg")
+
+    def get_gadm_column(self, level):
+        return f"NAME_{level}"
 
 
 def run_merge_landcover(region_string, skip_rivers=False, skip_lakes=False, skip_artifacts=False):
@@ -97,33 +125,37 @@ def run_merge_landcover(region_string, skip_rivers=False, skip_lakes=False, skip
     else:
         process.extend(["--b2", paths.path_lakes])
     process.extend(["--table", paths.path_land_use_key])
-    process.extend(["--name", region_string])
-    process.extend(["--output_dir", paths.path_output])
-    process.append("--debug_print")
     if not skip_artifacts:
         process.append("--clean-bridges")
+    _add_common_arguments(paths, process, region_string)
     job_runner.tracked_subprocess(process, "landcover")
 
 
 def run_accessibility_analysis(region_string, facilities_subset=None, knights_move=False, anisotropic=True):
     paths = FilePathHandler(region_string)
     process = ["Rscript", os.path.join(job_runner.source_path, "accessibilityAnalysis.R")]
-    process.extend(["--lcv", paths.path_merged_landcover])
-    process.extend(["--dem", paths.path_srtm])
-    process.extend(["--scenarios", paths.path_scenario_table])
-    process.extend(["--facilities", paths.path_facilities])
-    process.extend(["--name", region_string])
-    if facilities_subset:
-        process.extend(["--facilities_subset", facilities_subset])
-    if anisotropic:
-        process.extend(["--analysis_type", "anisotropic"])
-    else:
-        process.extend(["--analysis_type", "isotropic"])
-    if knights_move:
-        process.append("--knights_move")
-    process.extend(["--output_dir", paths.path_output])
-    process.append("--debug_print")
+    _add_accessibility_arguments(paths, process, facilities_subset, knights_move, anisotropic)
+    _add_common_arguments(paths, process, region_string)
     job_runner.tracked_subprocess(process, "accessibility")
+
+
+def run_coverage_analysis(region_string, max_travel_time, facilities_subset=None, knights_move=False, anisotropic=True, gadm_level=None, capacity_column=None):
+    processing_order_column = "vfmRelevanceScore"
+    facility_name_column = "name"
+    paths = FilePathHandler(region_string)
+    process = ["Rscript", os.path.join(job_runner.source_path, "geoCoverageAnalysis.R")]
+    _add_accessibility_arguments(paths, process, facilities_subset, knights_move, anisotropic)
+    process.extend(["--pop", paths.path_population])
+    process.extend(["--f_order", processing_order_column])
+    process.extend(["--f_name", facility_name_column])
+    process.extend(["--max_time", str(max_travel_time)])
+    if capacity_column:
+        process.extend(["--f_capacity", capacity_column])
+    if gadm_level:
+        process.extend(["--admin", paths.get_gadm_path(gadm_level)])
+        process.extend(["--zonal_column", paths.get_gadm_column(gadm_level)])
+    _add_common_arguments(paths, process, region_string)
+    job_runner.tracked_subprocess(process, "coverage")
 
 
 @app.post(job_runner.landcover_endpoint)
@@ -149,6 +181,22 @@ def accssibility_request():
     anisotropic = request_data.get("anisotropic", True)
     args = [region_string, facilities_subset, knights_move, anisotropic]
     Thread(target=run_accessibility_analysis, args=args).start()
+    return job_runner.status_json(), 202
+
+
+@app.post(job_runner.coverage_endpoint)
+@single_job_only
+def coverage_request():
+    request_data = request.get_json()
+    region_string = request_data["region_string"]
+    facilities_subset = request_data.get("facilities_subset", None)
+    knights_move = request_data.get("knights_move", False)
+    anisotropic = request_data.get("anisotropic", True)
+    max_travel_time = request_data.get("max_travel_time", 0)
+    gadm_level = request_data.get("gadm_level", None)
+    capacity_column = request_data.get("capacity_column", None)
+    args = [region_string, max_travel_time, facilities_subset, knights_move, anisotropic, gadm_level, capacity_column]
+    Thread(target=run_coverage_analysis, args=args).start()
     return job_runner.status_json(), 202
 
 

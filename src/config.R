@@ -5,6 +5,7 @@ require(plyr)
 require(magrittr)
 require(stringr)
 require(raster) # dev; for checking outputs in Rstudio
+require(DBI)
 
 require(optparse)
 # require(geojsonio)
