@@ -90,14 +90,14 @@ class FilePathHandler:
         self.base_path = "/geodata"
         self.gadm_filename_prefix = "gadm41_"
         self.path_output = os.path.join(self.base_path, region_string[0:3])
-        self.path_lakes = self._path_combine("lakes.geojson")
+        self.path_lakes = self._path_combine("lakes.gpkg")
         self.path_land_use_key = self._path_combine("land_use_key.csv")
         self.path_landcover = self._path_combine("esri.tif")
-        self.path_rivers = self._path_combine("rivers.geojson")
-        self.path_roads = self._path_combine("roads.geojson")
+        self.path_rivers = self._path_combine("rivers.gpkg")
+        self.path_roads = self._path_combine("roads.gpkg")
         self.path_srtm = self._path_combine("srtm.tif")
         self.path_merged_landcover = self._path_combine("merged_landcover.img")
-        self.path_facilities = self._path_combine("facilities.geojson")
+        self.path_facilities = self._path_combine("facilities.gpkg")
         self.path_scenario_table = self._path_combine("scenario_table.csv")
         self.path_population = self._path_combine("population.tif")
 
@@ -105,7 +105,7 @@ class FilePathHandler:
         return os.path.join(self.path_output, self.region_string + "_" + suffix)
 
     def get_gadm_path(self, level):
-        return os.path.join(self.path_output, f"{self.gadm_filename_prefix}{self.region_string}_l{level}.geojson")
+        return os.path.join(self.path_output, f"{self.gadm_filename_prefix}{self.region_string}_l{level}.gpkg")
 
     def get_gadm_column(self, level):
         return f"NAME_{level}"
