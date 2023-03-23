@@ -704,7 +704,7 @@ amCatchmentAnalyst <- function(
 
   
   # retrieve the path to the catchment
-  pathToCatchment <- file.path(tempdir(), paste0(outputCatchment, ".geojson"))
+  pathToCatchment <- file.path(tempdir(), paste0(outputCatchment, ".gpkg"))
   
   # travel time / cost map
   travelTime <- inputMapTravelTime
@@ -1320,7 +1320,7 @@ amRasterToShape <- function(
   execGRASS("v.out.ogr",
             input = tmpVectDissolve,
             output = outPath,
-            format = "GeoJSON",
+            format = "GPKG",
             flags = outFlags,
             output_layer = outputShape
   )
