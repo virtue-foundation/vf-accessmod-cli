@@ -268,7 +268,9 @@ import_layer <- function(path, type, layer_name, ignore_proj=F, overwrite=F) {
   } else if (type=="vector") { # could be shapefile directory or .geojson
     if(is_a_dir(path)) { #shapefile directory
       filename = get_shapefile_dir(path)
-      import_parameters = list(input=path, output=layer_name, layer=filename, snap=0.0001)
+      import_parameters = list(input=path, output=layer_name, layer=filename
+                               #, snap=0.0001
+                               )
     } else { # probably geojson
       import_parameters = list(input=path, output=layer_name)
     }
@@ -584,6 +586,7 @@ sysEvalFreeMbMem <- function() {
 #' @param {Character} rasters Rasters to set the region
 #' @param {Character} vectors vectors to set the region
 amRegionSet <- function(rasters = character(0), vectors = character(0)) {
+  
   hasRasters <- !amRastExists(rasters)
   hasVectors <- !amVectExists(vectors)
   
@@ -591,12 +594,17 @@ amRegionSet <- function(rasters = character(0), vectors = character(0)) {
     warnings("amRegionSet : no layer available to update region")
     return
   }
-  
+  print("Setting region using the following:")
+  print(rasters)
+  print(vectors)
+  print("current region")
+  execGRASS("g.region", flags="p")
+  print("new region")
   execGRASS("g.region",
             raster = rasters,
-            vector = vectors
+            vector = vectors,
             #align = config$mapDem,
-            # flags = c("o")
+            flags = c("p")
   )
 }
 
@@ -1305,15 +1313,17 @@ amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
 
 amGetFacilitiesTableWhatRast <- function(mapHf, mapRaster) {
   
-  # on_exit_add({
-  #   amRegionReset()
-  # })
-  
   amRegionSet(mapRaster, mapHf)
-  print("Limiting geographic region to that of the health facilities vector")
   tbl <- amGetRasterValueAtPoint(mapHf, mapRaster)
   
+  amRegionReset()
   return(tbl)
+}
+
+amRegionReset <- function() {
+  amRegionSet(
+    rasters = config$mapDem
+  )
 }
 
 amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, mapDem, tblSpeed) {
@@ -1448,4 +1458,11 @@ amMoveShp <- function(shpFile, outDir, outName) {
 
 debug_header <- function(text) {
   print(paste("######################", text))
+}
+
+debug_raster_report <- function(map) {
+  report <- execGRASS("r.report", map=map, units=c("k","c", "p"), intern=T)
+  write.table(report,
+              file = paste0(map, "_report.txt"),
+              row.names = F, quote=FALSE)
 }

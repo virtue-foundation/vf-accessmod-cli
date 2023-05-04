@@ -124,7 +124,7 @@ input_f_capacity_col <- opt$f_capacity
 if(is.null(input_f_capacity_col)) {
   ignoreCapacity <- TRUE
   print("Will run analysis without considering capacities")
-  }
+}
 
 zonalCoverage <- FALSE
 input_zonal_col <- opt$zonal_column
@@ -139,7 +139,7 @@ if ((!is.null(path_admin)) & (!is.null(input_zonal_col))) {
 } else {
   zonalCoverage <- FALSE
 }
-  
+
 
 debug_print <- opt$debug_print
 
@@ -286,7 +286,7 @@ orderField <- input_f_order_col
 
 # parameters
 maxTravelTime <- input_max_time
-maxTravelTimeOrder <- NULL
+maxTravelTimeOrder <- 120
 dirAnalysis <- "toHF"
 typeAnalysis <- input_analysis_type
 #limitClosest <- input$checkReferralLimitClosest
@@ -321,45 +321,45 @@ if (!keepFullHfTable) {
     hfLab)
   ]
 }
-  
-  args <- list(
-    inputMerged = "r_merged_lcv",
-    inputPop = "r_pop",
-    inputHf = inputHfFinal,
-    inputZoneAdmin = "v_admin",
-    outputPopResidual = "r_pop_resid",
-    outputHfCatchment = paste0(input_region, "_catchment_", input_f_subset_col),
-    outputPopBarrier = NULL,
-    outputTableCapacity = "t_capacity",
-    outputTableZonal = "t_zonal",
-    outputSpeed = "r_speed",
-    outputFriction = "r_friction",
-    typeAnalysis = typeAnalysis,
-    removeCapted = FALSE,
-    vectCatch = TRUE,
-    popOnBarrier = FALSE,
-    towardsFacilities = towardsFacilities,
-    radius = NULL,
-    maxTravelTime = maxTravelTime,
-    maxTravelTimeOrder = maxTravelTimeOrder,
-    useMaxSpeedMask = useMaxSpeedMask,
-    hfIdx = hfIdx,
-    nameField = hfLab,
-    capField = capField,
-    orderField = orderField,
-    ignoreCapacity = ignoreCapacity,
-    addColumnPopOrigTravelTime = FALSE,
-    addColumnsPopCoverageExtended = FALSE,
-    zonalCoverage = zonalCoverage,
-    zoneFieldId = "cat",
-    zoneFieldLabel = input_zonal_col,
-    hfOrder = "tableOrder",
-    hfOrderSorting = "hfOrderDesc",
-    tableScenario = t_scenarios,
-    tableFacilities = validated_hf,
-    debug_print = debug_print,
-    outdir = output_dir
-  )
+
+args <- list(
+  inputMerged = "r_merged_lcv",
+  inputPop = "r_pop",
+  inputHf = inputHfFinal,
+  inputZoneAdmin = "v_admin",
+  outputPopResidual = "r_pop_resid",
+  outputHfCatchment = paste0(input_region, "_catchment_", input_f_subset_col),
+  outputPopBarrier = "r_pop_barrier",
+  outputTableCapacity = "t_capacity",
+  outputTableZonal = "t_zonal",
+  outputSpeed = "r_speed",
+  outputFriction = "r_friction",
+  typeAnalysis = typeAnalysis,
+  removeCapted = TRUE,
+  vectCatch = TRUE,
+  popOnBarrier = TRUE,
+  towardsFacilities = towardsFacilities,
+  radius = 5000,
+  maxTravelTime = maxTravelTime,
+  maxTravelTimeOrder = maxTravelTimeOrder,
+  useMaxSpeedMask = useMaxSpeedMask,
+  hfIdx = hfIdx,
+  nameField = hfLab,
+  capField = capField,
+  orderField = orderField,
+  ignoreCapacity = ignoreCapacity,
+  addColumnPopOrigTravelTime = FALSE,
+  addColumnsPopCoverageExtended = FALSE,
+  zonalCoverage = zonalCoverage,
+  zoneFieldId = "cat",
+  zoneFieldLabel = input_zonal_col,
+  hfOrder = "tableOrder",
+  hfOrderSorting = "hfOrderDesc",
+  tableScenario = t_scenarios,
+  tableFacilities = validated_hf,
+  debug_print = debug_print,
+  outdir = output_dir
+)
 
 output_list <- do.call("amCapacityAnalysis", args)
 
@@ -394,6 +394,5 @@ report_popresid <- execGRASS("r.report", map=output_list$popResidualRaster, unit
 write.table(report_popresid,
             file = paste0(output_dir, "/", input_region, "_pop_resid_", input_f_subset_col, "report.txt"),
             row.names = F, quote=FALSE)
-
 
 
