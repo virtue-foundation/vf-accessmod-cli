@@ -36,6 +36,8 @@ config$listTranspMod <- list(
   MOTORIZED = list(rastVal = 3000)
 )
 
+config$mapDem = "r_dem"
+
 # character separator
 config$sepTagFile <- "_"
 config$sepClass <- "__"

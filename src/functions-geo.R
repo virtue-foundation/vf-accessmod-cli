@@ -84,6 +84,7 @@ amCapacityAnalysis <- function(
           inputMerged,
           outputSpeed
         )
+        debug_raster_report(outputSpeed)
       },
       "isotropic" = {
         amCreateFrictionMap(
@@ -92,6 +93,7 @@ amCapacityAnalysis <- function(
           outputFriction,
           mapResol = gmeta()$nsres
         )
+        debug_raster_report(outputFriction)
       }
     )
   }
@@ -211,8 +213,8 @@ amCapacityAnalysis <- function(
     outputPopResidual = outputPopResidual
   )
   
-
-
+  debug_raster_report(map = outputPopResidual)
+  
 
   #
   # Population on barrier : map and stat
@@ -295,6 +297,8 @@ amCapacityAnalysis <- function(
         radius           = radius
       )
     )
+    
+    debug_raster_report(tmpCost)
 
 
     #
@@ -426,11 +430,12 @@ amCapacityAnalysis <- function(
 
     tblPopByZone$covered <- tblPopByZone$sum.y - tblPopByZone$sum.x
     tblPopByZone$percent <- (tblPopByZone$covered / tblPopByZone$sum.y) * 100
-    tblPopByZone$sum.x <- NULL
+ #   tblPopByZone$sum.x <- NULL
     names(tblPopByZone) <- c(
       zoneFieldId,
       zoneFieldLabel,
       "amPopSum",
+      "amPopResidualSum",
       "amPopCovered",
       "amPopCoveredPercent"
     )
@@ -454,7 +459,7 @@ amCapacityAnalysis <- function(
   #
   #  create final pop-resid raster result for output
   #
-  execGRASS("g.copy", raster=paste(outputPopResidual, ",r_pop_resid"))
+  execGRASS("g.copy", raster=paste0(outputPopResidual, ",r_pop_resid"))
 
   #
   # finish process
@@ -764,6 +769,8 @@ amCatchmentAnalyst <- function(
     pbz <- inputTablePopByZone
   }
   
+  write.csv(pbz, "pbz.csv")
+  
   #
   # Total pop under travel time with original population
   #
@@ -977,6 +984,9 @@ amCatchmentAnalyst <- function(
         )
       )
     }
+    
+    if(debug_print) print("################ CATCHMENT TYPE")
+    if (debug_print) print(type)
     
     # cat("Type", type, " | ", "id", facilityId, "\n" );
     
@@ -1366,5 +1376,39 @@ amGrassSessionGetEnv <- function(name) {
   print(amg)
   item <- amg[[name]]
   return(item)
+}
+
+#' amMapPopOnBarrier
+#'
+#' Ask grass if there is population located on barrier (null cells)
+#' @param inputPop population layer name
+#' @param inputMerged merged landcover layer name
+#' @param inputFriction Friction layer name
+#' @param inputSpeed Speed layer name
+#' @param outputMap output layer name containing cells on barrier
+#' @export
+amMapPopOnBarrier <- function(inputPop,
+                              inputMerged = NULL,
+                              inputFriction = NULL,
+                              inputSpeed = NULL,
+                              outputMap = "tmp_out_pop_barrier") {
+  inputTest <- inputMerged
+  
+  if (!amRastExists(inputTest)) {
+    inputTest <- inputSpeed
+  }
+  
+  if (!amRastExists(inputTest)) {
+    inputTest <- inputFriction
+  }
+  
+  expr <- sprintf(
+    "%1$s = if(!isnull(%2$s) && isnull(%3$s),%2$s,null())",
+    outputMap,
+    inputPop,
+    inputTest
+  )
+  
+  execGRASS("r.mapcalc", expression = expr, flags = "overwrite")
 }
 
