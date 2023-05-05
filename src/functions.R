@@ -603,7 +603,7 @@ amRegionSet <- function(rasters = character(0), vectors = character(0)) {
   execGRASS("g.region",
             raster = rasters,
             vector = vectors,
-            #align = config$mapDem,
+            align = config$mapDem,
             flags = c("p")
   )
 }
@@ -1421,7 +1421,7 @@ amMoveShp <- function(shpFile, outDir, outName) {
   
   fe <- file.exists(shpFile)
   de <- dir.exists(outDir)
-  so <- isTRUE(grep(".*\\.geojson$", shpFile) > 0)
+  so <- isTRUE(grep(".*\\.gpkg$", shpFile) > 0)
   
   if (!fe) {
     warning(
@@ -1443,7 +1443,7 @@ amMoveShp <- function(shpFile, outDir, outName) {
   
   if (all(ok)) {
     # base name file for pattern.
-    baseShape <- gsub(".geojson", "", basename(shpFile))
+    baseShape <- gsub(".gpkg", "", basename(shpFile))
     # list files (we can also use )
     allShpFiles <- list.files(dirname(shpFile), pattern = paste0("^", baseShape), full.names = TRUE)
     # Copy each files in final catchment directory.
