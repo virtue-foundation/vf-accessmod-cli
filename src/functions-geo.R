@@ -434,8 +434,8 @@ amCapacityAnalysis <- function(
     names(tblPopByZone) <- c(
       zoneFieldId,
       zoneFieldLabel,
-      "amPopSum",
       "amPopResidualSum",
+      "amPopSum",
       "amPopCovered",
       "amPopCoveredPercent"
     )
