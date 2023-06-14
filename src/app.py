@@ -108,7 +108,7 @@ class FilePathHandler:
         return os.path.join(self.path_output, f"{self.gadm_filename_prefix}{self.region_string}_l{level}.gpkg")
 
     def get_gadm_column(self, level):
-        return f"NAME_{level}"
+        return f"NAME_{abs(level)}"
 
 
 def run_merge_landcover(region_string, skip_rivers=False, skip_lakes=False, skip_artifacts=False):
