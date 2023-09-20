@@ -117,8 +117,6 @@ input_max_time <- opt$max_time
 input_knights_move <- opt$knights_move
 input_f_subset_col <- opt$f_subset
 
-
-
 ignoreCapacity <- FALSE
 input_f_capacity_col <- opt$f_capacity
 if(is.null(input_f_capacity_col)) {
@@ -213,7 +211,7 @@ if(is_loaded("v_hf")) {
 # Getting facilities table
 b <- execGRASS("db.select", parameters=list(table="v_hf"), intern=TRUE)
 con <- textConnection(b)
-tableFacilities <- read.delim(con, header=TRUE, sep="|")
+tableFacilities <- read.delim(con, header=TRUE, sep="|", allowEscapes = T, encoding = "UTF-8", quote="", comment.char="")
 close(con)
 
 # Subset facilities based on boolean column in table
