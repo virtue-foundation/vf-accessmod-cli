@@ -96,7 +96,7 @@ class FilePathHandler:
         self.path_rivers = self._path_combine("rivers.gpkg")
         self.path_roads = self._path_combine("roads.gpkg")
         self.path_srtm = self._path_combine("srtm.tif")
-        self.path_merged_landcover = self._path_combine("merged_landcover.img")
+        self.path_merged_landcover = self._path_combine("merged_landcover.tif")
         self.path_facilities = self._path_combine("facilities.gpkg")
         self.path_scenario_table = self._path_combine("scenario_table.csv")
         self.path_population = self._path_combine("population.tif")
