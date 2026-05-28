@@ -242,8 +242,6 @@ execGRASS("r.out.gdal", parameters=list(input="r_traveltime",
           flags=c("overwrite", "f", "c", "m"))
 report_traveltime <- execGRASS("r.report", map="r_traveltime", units=c("k","c", "p"), intern=T)
 write.table(report_traveltime, file=paste(dir_output_traveltime, filename_traveltime_report, sep=""),
-            row.names = F, quote=FALSE) 
+            row.names = F, quote=FALSE)
 
-
-
-
+amCleanupTmpLayers()

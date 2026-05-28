@@ -393,4 +393,6 @@ write.table(report_popresid,
             file = paste0(output_dir, "/", input_region, "_pop_resid_", input_f_subset_col, "report.txt"),
             row.names = F, quote=FALSE)
 
+amCleanupTmpLayers()
+
 
