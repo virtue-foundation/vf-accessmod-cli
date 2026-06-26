@@ -1466,3 +1466,17 @@ debug_raster_report <- function(map) {
               file = paste0(map, "_report.txt"),
               row.names = F, quote=FALSE)
 }
+
+amCleanupTmpLayers <- function() {
+  try(
+    execGRASS("g.remove", flags=c("b", "f"), type="raster", pattern="tmp_*"),
+    silent=TRUE
+  )
+  try(
+    execGRASS("g.remove", flags=c("b", "f"), type="vector", pattern="tmp_*"),
+    silent=TRUE
+  )
+  if(dir.exists("temp")) {
+    unlink("temp", recursive=TRUE)
+  }
+}
