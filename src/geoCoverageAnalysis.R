@@ -83,6 +83,7 @@ opt = parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "pop", "scenarios", "facilities")
 missing_inputs <- required_inputs[!required_inputs %in% names(opt)]
 sink(paste0("../logs/", "geographic_coverage_analysis.log"), append=FALSE, split=TRUE, type = "output")
+sink(paste0("../logs/", "geographic_coverage_analysis_error.log"), append=FALSE, split=TRUE, type = "message")
 if(length(missing_inputs)>0) {
   print("Missing the following required file inputs, please check")
   print(paste(missing_inputs, collapse = ", "))
@@ -144,6 +145,7 @@ debug_print <- opt$debug_print
 output_dir <- clean_filepath(opt$output_dir)
 if(!dir.exists(output_dir)) {dir.create(output_dir)}
 sink(paste0(output_dir, "/", "output_log.txt"), append=FALSE, split=TRUE, type = "output")
+sink(paste0(output_dir, "/", "error_log.txt"), append=FALSE, split=TRUE, type = "message")
 
 if(debug_print) print("Arguments accepted. Setting projection")
 
