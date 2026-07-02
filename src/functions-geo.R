@@ -300,6 +300,9 @@ amCapacityAnalysis <- function(
     
     debug_raster_report(tmpCost)
 
+    print("  [loop] debug_raster_report done; entering amCatchmentAnalyst")
+    print(sprintf("  [loop] free mem before catchment: %s MB", tryCatch(sysEvalFreeMbMem(), error=function(e) NA)))
+
 
     #
     # Catchment analysis
@@ -693,6 +696,7 @@ amCatchmentAnalyst <- function(
     outdir,
     language = config$language) {
   
+  print(sprintf("  [catchment] ENTER amCatchmentAnalyst facilityId=%s hfCap=%s ignoreCapacity=%s", facilityId, facilityCapacity, ignoreCapacity))
   
   #
   # Check input before going further
