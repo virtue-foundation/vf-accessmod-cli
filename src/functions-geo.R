@@ -250,7 +250,7 @@ amCapacityAnalysis <- function(
     hfCap <- ifelse(
       test = ignoreCapacity,
       yes = 0,
-      no = sum(tableFacilities[tableFacilities[hfIdx] == i, capField])
+      no = sum(tableFacilities[tableFacilities[hfIdx] == i, capField], na.rm = TRUE)
     )
     #
     hfName <- tableFacilities[tableFacilities[hfIdx] == i, nameField]
