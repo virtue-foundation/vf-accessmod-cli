@@ -247,16 +247,21 @@ amCapacityAnalysis <- function(
     #
     # extract capacity and name
     #
+    hfVal <- tableFacilities[tableFacilities[hfIdx] == i, capField]
+    hfName <- tableFacilities[tableFacilities[hfIdx] == i, nameField]
+    if (!ignoreCapacity && anyNA(hfVal)) {
+      print(sprintf("WARNING: Facility %s has NA capacity; treating as 0", i))
+      write.table(data.frame(xid = i, name = hfName, stringsAsFactors = FALSE),
+                  file = file.path(outdir, "na_capacity_warnings.csv"),
+                  append = file.exists(file.path(outdir, "na_capacity_warnings.csv")),
+                  sep = ",", row.names = FALSE,
+                  col.names = !file.exists(file.path(outdir, "na_capacity_warnings.csv")))
+    }
     hfCap <- ifelse(
       test = ignoreCapacity,
       yes = 0,
-      no = sum(tableFacilities[tableFacilities[hfIdx] == i, capField], na.rm = TRUE)
+      no = sum(hfVal, na.rm = TRUE)
     )
-    #
-    hfName <- tableFacilities[tableFacilities[hfIdx] == i, nameField]
-
-
-
     #
     # extract temporary facility point
     #
@@ -299,9 +304,6 @@ amCapacityAnalysis <- function(
     )
     
     debug_raster_report(tmpCost)
-
-    print("  [loop] debug_raster_report done; entering amCatchmentAnalyst")
-    print(sprintf("  [loop] free mem before catchment: %s MB", tryCatch(sysEvalFreeMbMem(), error=function(e) NA)))
 
 
     #
@@ -607,7 +609,6 @@ amInitPopResidual <- function(inputPop = NULL,
 #' @param inputMapTravelTime Travel time map
 #' @param lowerOrEqualToZone Time limit
 amInnerRing <- function(inputMapTravelTime, inputMapPopResidual, lowerOrEqualToZone = 0, value = 0) {
-  print(sprintf("    [amInnerRing] zone<=%s value=%s", lowerOrEqualToZone, value))
   expInner <- sprintf(
     "%1$s = if( !isnull(%2$s) &&& %2$s <= %3$s, %4$s, %1$s )",
     inputMapPopResidual,
@@ -618,7 +619,6 @@ amInnerRing <- function(inputMapTravelTime, inputMapPopResidual, lowerOrEqualToZ
   if (isEmpty(expInner)) {
     stop("amInnerRing issue, empty expression!")
   }
-  print("    [amInnerRing] r.mapcalc start")
   execGRASS("r.mapcalc",
             expression = expInner,
             flags = "overwrite"
@@ -633,7 +633,6 @@ amInnerRing <- function(inputMapTravelTime, inputMapPopResidual, lowerOrEqualToZ
 #' @param inputMapTravelTime Travel time map
 #' @param lowerOrEqualToZone Time limit
 amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 0, zone = 0) {
-  print(sprintf("    [amOuterRing] zone=%s propToRemove=%s", zone, propToRemove))
   expOuter <- sprintf(
     "%1$s = if( !isnull(%2$s) &&& %2$s == %4$s,  %1$s - %1$s * %3$s, %1$s )",
     inputMapPopResidual,
@@ -644,7 +643,6 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
   if (isEmpty(expOuter)) {
     stop("amOuterRing issue, empty expression!")
   }
-  print("    [amOuterRing] r.mapcalc start")
   execGRASS("r.mapcalc",
             expression = expOuter,
             flags = "overwrite"
@@ -696,7 +694,6 @@ amCatchmentAnalyst <- function(
     outdir,
     language = config$language) {
   
-  print(sprintf("  [catchment] ENTER amCatchmentAnalyst facilityId=%s hfCap=%s ignoreCapacity=%s", facilityId, facilityCapacity, ignoreCapacity))
   
   #
   # Check input before going further
@@ -769,7 +766,6 @@ amCatchmentAnalyst <- function(
   
   # If pop by zone is not given, extract it
   if (is.null(inputTablePopByZone)) {
-    print("  [catchment] computing zonal stats (amGetRasterStatZonal)")
     pbz <- amGetRasterStatZonal(
       mapZones = inputMapTravelTime,
       mapValues = inputMapPopResidual
@@ -812,7 +808,7 @@ amCatchmentAnalyst <- function(
   isEmpty <- isTRUE(nrow(pbz) == 0)
   
   # starting population
-  print("  [catchment] computing popTotal / popTotalNotOnBarrier / popResidualBefore")
+  
   popTotal <- amGetRasterStat(inputMapPopInit, "sum")
   popTotalNotOnBarrier <- amGetRasterStat(inputMapPopResidual, "sum")
   popResidualBefore <- amGetRasterStat(inputMapPopResidual, "sum")
@@ -887,8 +883,6 @@ amCatchmentAnalyst <- function(
     
     # ignore capacity
     isE <- isTRUE(ignoreCapacity)
-    print(sprintf("  [catchment] case eval: cap=%s popInner=%s popOuter=%s popOuterBand=%s popTTMax=%s popTTMin=%s",
-                  facilityCapacity, popInner, popOuter, popOuterBand, popTravelTimeMax, popTravelTimeMin))
     
     # D
     # Inner catchment match the facility capacity
@@ -914,7 +908,6 @@ amCatchmentAnalyst <- function(
       capacityResidual <- 0
       
       if (removeCapted) {
-        print("  [catchment] amInnerRing (case E)")
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
@@ -928,7 +921,6 @@ amCatchmentAnalyst <- function(
       timeLimitVector <- zoneInner
       
       if (removeCapted) {
-        print("  [catchment] amInnerRing (case D)")
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
@@ -942,7 +934,6 @@ amCatchmentAnalyst <- function(
       timeLimitVector <- zoneInner
       
       if (removeCapted) {
-        print("  [catchment] amInnerRing (case C)")
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
@@ -956,7 +947,6 @@ amCatchmentAnalyst <- function(
       timeLimitVector <- zoneOuter
       
       if (removeCapted) {
-        print("  [catchment] amOuterRing (case B)")
         amOuterRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
@@ -972,14 +962,12 @@ amCatchmentAnalyst <- function(
       
       
       if (removeCapted) {
-        print("  [catchment] amInnerRing (case A)")
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
           lowerOrEqualToZone = zoneInner
         )
         
-        print("  [catchment] amOuterRing (case A)")
         amOuterRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
@@ -1139,11 +1127,9 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
   #
   # compute integer version of cumulative cost map to use with r.univar
   #
-  print("  [zonal] reading raster meta")
   ttIsCell <- amRasterMeta(mapZones)[["datatype"]] == "CELL"
   
   if (!ttIsCell) {
-    print("  [zonal] rounding travel-time to integer zones")
     exprIntCost <- sprintf(
       "%1$s = %1$s >= 0 ? round( %1$s ) : null() ",
       mapZones
@@ -1154,7 +1140,6 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
   #
   # compute zonal statistic : time isoline as zone
   #
-  print("  [zonal] running r.univar -g -t (heaviest step)")
   zStat <- execGRASS(
     "r.univar",
     flags  = c("g", "t", "overwrite"),

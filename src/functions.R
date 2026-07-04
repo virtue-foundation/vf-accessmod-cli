@@ -1058,7 +1058,6 @@ amAnisotropicTravelTime <- function(
               parameters = amParam,
               flags = flags
     )
-    print("  [amAnisotropicTravelTime] r.walk complete; calling amCleanTravelTime")
     
     if (!rawMode) {
       amCleanTravelTime(
@@ -1069,7 +1068,6 @@ amAnisotropicTravelTime <- function(
         convertToMinutes = TRUE
       )
     }
-    print("  [amAnisotropicTravelTime] amCleanTravelTime complete")
   } else {
     return(
       list(
@@ -1148,13 +1146,12 @@ amCleanTravelTime <- function(map,
     , timeoutMinutesValue # 5
     , divider # 6
   )
-  print(sprintf("    [amCleanTravelTime] r.mapcalc start; map=%s cutSecStart=%s cutSecEnd=%s div=%s", map, cutSecondsStart, cutSecondsEnd, divider))
+  
   execGRASS(
     "r.mapcalc",
     expression = cmd,
     flags = c("overwrite")
   )
-  print("    [amCleanTravelTime] r.mapcalc complete")
 }
 
 amCreateSpeedMap <- function(tbl, mapMerged, mapSpeed) {
