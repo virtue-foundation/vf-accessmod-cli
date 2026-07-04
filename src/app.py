@@ -75,9 +75,11 @@ def single_job_only(func):
     return wrapper
 
 
-def _add_common_arguments(path_object, command_list, region_string):
+def _add_common_arguments(path_object, command_list, region_string, output_dir=None):
+    if output_dir is None:
+        output_dir = path_object.path_output
     command_list.extend(["--name", region_string])
-    command_list.extend(["--output_dir", path_object.path_output])
+    command_list.extend(["--output_dir", output_dir])
     command_list.append("--debug_print")
 
 
@@ -104,6 +106,8 @@ class FilePathHandler:
         self.base_path = "/geodata"
         self.gadm_filename_prefix = "gadm41_"
         self.path_output = os.path.join(self.base_path, region_string[0:3])
+        self.path_analysis_output = os.path.join(self.path_output, "analysis")
+        os.makedirs(self.path_analysis_output, exist_ok=True)
         self.path_lakes = self._path_combine("lakes.gpkg")
         self.path_land_use_key = self._path_combine("land_use_key.csv")
         self.path_landcover = self._path_combine("esri.tif")
@@ -161,7 +165,9 @@ def run_accessibility_analysis(
     _add_accessibility_arguments(
         paths, process, facilities_subset, knights_move, anisotropic
     )
-    _add_common_arguments(paths, process, region_string)
+    _add_common_arguments(
+        paths, process, region_string, output_dir=paths.path_analysis_output
+    )
     job_runner.tracked_subprocess(process, "accessibility")
 
 
@@ -190,7 +196,9 @@ def run_coverage_analysis(
     if gadm_level:
         process.extend(["--admin", paths.get_gadm_path(gadm_level)])
         process.extend(["--zonal_column", paths.get_gadm_column(gadm_level)])
-    _add_common_arguments(paths, process, region_string)
+    _add_common_arguments(
+        paths, process, region_string, output_dir=paths.path_analysis_output
+    )
     job_runner.tracked_subprocess(process, "coverage")
 
 
