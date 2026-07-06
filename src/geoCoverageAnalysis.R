@@ -224,6 +224,12 @@ con <- textConnection(b)
 tableFacilities <- read.delim(con, header=TRUE, sep="|", allowEscapes = T, encoding = "UTF-8", quote="", comment.char="")
 close(con)
 
+# Debug: dump raw facilities table for NA-cat investigation
+write.csv(tableFacilities,
+          file = file.path(output_dir, "facilities_debug.csv"),
+          row.names = FALSE)
+print(paste("DEBUG: wrote facilities_debug.csv to", output_dir))
+
 # Subset facilities based on boolean column in table
 if (input_f_subset_col != "all") {
   print(input_f_subset_col)
