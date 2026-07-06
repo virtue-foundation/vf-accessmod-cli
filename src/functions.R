@@ -496,11 +496,24 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
   inputHfFinal <- ifelse(hasAllSelect, inputFacilities, fName)
   
   if (!hasAllSelect) {
+    #
+    # Remove NA category values — they can't be used in a SQL IN/NOT IN clause
+    # and the rgrass7 execGRASS function passes the clause through system()
+    # without shell-escaping, so parentheses and other metacharacters must be
+    # double-quoted to prevent sh: Syntax error.
+    #
+    idHfSelect <- idHfSelect[!is.na(idHfSelect)]
+    idHfNotSelect <- idHfNotSelect[!is.na(idHfNotSelect)]
+    
     if (hasMoreSelect) {
-      qSql <- paste0(config$vector_key, " NOT IN ( ", paste0("'", idHfNotSelect, "'", collapse = ","), " )")
+      qSql <- sprintf(
+        '"%s NOT IN (%s)"',
+        config$vector_key,
+        paste0("'", idHfNotSelect, "'", collapse = ",")
+      )
     } else {
       qSql <- sprintf(
-        " %1$s IN ( %2$s )",
+        '"%s IN (%s)"',
         config$vector_key,
         paste0("'", idHfSelect, "'", collapse = ",")
       )
