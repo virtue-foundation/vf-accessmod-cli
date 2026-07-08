@@ -247,16 +247,21 @@ amCapacityAnalysis <- function(
     #
     # extract capacity and name
     #
+    hfVal <- tableFacilities[tableFacilities[hfIdx] == i, capField]
+    hfName <- tableFacilities[tableFacilities[hfIdx] == i, nameField]
+    if (!ignoreCapacity && anyNA(hfVal)) {
+      print(sprintf("WARNING: Facility %s has NA capacity; treating as 0", i))
+      write.table(data.frame(xid = i, name = hfName, stringsAsFactors = FALSE),
+                  file = file.path(outdir, "na_capacity_warnings.csv"),
+                  append = file.exists(file.path(outdir, "na_capacity_warnings.csv")),
+                  sep = ",", row.names = FALSE,
+                  col.names = !file.exists(file.path(outdir, "na_capacity_warnings.csv")))
+    }
     hfCap <- ifelse(
       test = ignoreCapacity,
       yes = 0,
-      no = sum(tableFacilities[tableFacilities[hfIdx] == i, capField])
+      no = sum(hfVal, na.rm = TRUE)
     )
-    #
-    hfName <- tableFacilities[tableFacilities[hfIdx] == i, nameField]
-
-
-
     #
     # extract temporary facility point
     #

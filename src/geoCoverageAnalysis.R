@@ -83,6 +83,10 @@ opt = parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "pop", "scenarios", "facilities")
 missing_inputs <- required_inputs[!required_inputs %in% names(opt)]
 sink(paste0("../logs/", "geographic_coverage_analysis.log"), append=FALSE, split=TRUE, type = "output")
+# sink(type="message") requires a connection (not a filename string) and only
+# one message diversion may be active at a time; closed before reopening below.
+.errCon <- file(paste0("../logs/", "geographic_coverage_analysis_error.log"), open = "wt")
+sink(.errCon, type = "message")
 if(length(missing_inputs)>0) {
   print("Missing the following required file inputs, please check")
   print(paste(missing_inputs, collapse = ", "))
@@ -144,6 +148,12 @@ debug_print <- opt$debug_print
 output_dir <- clean_filepath(opt$output_dir)
 if(!dir.exists(output_dir)) {dir.create(output_dir)}
 sink(paste0(output_dir, "/", "output_log.txt"), append=FALSE, split=TRUE, type = "output")
+# Close the early message sink before opening the run-specific one (R allows
+# only one message diversion at a time).
+sink(type = "message")
+close(.errCon)
+.errCon <- file(paste0(output_dir, "/", "error_log.txt"), open = "wt")
+sink(.errCon, type = "message")
 
 if(debug_print) print("Arguments accepted. Setting projection")
 
