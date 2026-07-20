@@ -280,10 +280,6 @@ if(t_pop_on_barrier$cells > 0) {
 
 ######################### Main function
 
-# # get current mapset and loc
-# currentMapset <- amGrassSessionGetLocation()
-# currentLocation <- amGrassSessionGetMapset()
-
 # field selection
 hfIdx <- "xid"
 hfLab <- input_f_name_col
@@ -297,20 +293,8 @@ maxTravelTime <- input_max_time
 maxTravelTimeOrder <- 120
 dirAnalysis <- "toHF"
 typeAnalysis <- input_analysis_type
-#limitClosest <- input$checkReferralLimitClosest
-#useParallel <- input$checkReferralParallel
-#snapToGrid <- input$checkReferralSnapToGrid
-# permuteGroups <- input$checkReferralPermute
-# keepNetDist <- input$checkReferralKeepNetwork
 useMaxSpeedMask <- FALSE
-# selectedAnalysis <- input$moduleSelector
-# hfOrder <- input$hfOrder
-# hfOrderSorting <- input$hfOrderSorting
-# popBuffer <- input$popBufferRadius
-# modParam <- input$mod3param
 keepFullHfTable <- FALSE
-# configSettingsOnly <- FALSE
-
 # logic
 # return path = towards facilities.
 towardsFacilities <- ifelse(dirAnalysis == "toHf", TRUE, FALSE)
@@ -322,7 +306,6 @@ towardsFacilities <- ifelse(dirAnalysis == "toHf", TRUE, FALSE)
 if (!keepFullHfTable) {
   validated_hf <- validated_hf[c(
     config$vectorKey,
-    # "amSelect",
     orderField,
     capField,
     hfIdx,

@@ -1,11 +1,7 @@
 require(rgrass)
 require(tools)
 require(jsonlite)
-require(plyr)
 require(magrittr)
-require(stringr)
-require(raster) # dev; for checking outputs in Rstudio
-require(DBI)
 
 require(optparse)
 # require(geojsonio)
@@ -26,7 +22,7 @@ config$pathClasses <- file.path(config$pathDictDir, "classes.json")
 config$dict <- fromJSON(config$pathDictMain)
 config$dataClass <- fromJSON(config$pathClasses)
 # get a version grouped by class with class id as key
-config$dataClassList <- dlply(config$dataClass, .(class), c)
+config$dataClassList <- split(config$dataClass, config$dataClass$class)
 
 config$vector_key = "cat"
 

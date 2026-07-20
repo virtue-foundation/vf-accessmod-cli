@@ -319,8 +319,6 @@ for (i in 1:tblN) {
   }
   if (debug_print) {
     grass_print_info(outNameStack_road, "raster")
-    # road_report <- execGRASS("r.report", map=outNameStack_road, units="kilometers,percent", intern=T)
-    # write.table(road_report, file="", row.names = F)
   }
   
   # Clean up

@@ -29,7 +29,6 @@
 ########################## Setup
 #!/usr/bin/env Rscript
 source("config.R")
-source("functions_accessibility.R")
 
 option_list = list(
   # Inputs
@@ -186,7 +185,6 @@ if(any(validated_hf$amOnBarrier)) {
 # Set up switches for speed/friction and travel time rasters/reports
 fn_speed_friction <- switch(analysis_type, isotropic = "amCreateFrictionMap", anisotropic = "amCreateSpeedMap")
 bln_speed_or_friction <- switch(analysis_type, isotropic = "friction", anisotropic = "speed")
-bln_knights_or_blank <- ifelse(knights_move, "knights", "")
 name_speed_friction_raster <- paste0("r_", bln_speed_or_friction)
 
 args_speed_friction <- switch(analysis_type, 
@@ -216,11 +214,8 @@ filename_speed_friction_raster <- paste0(paste(output_region, bln_speed_or_frict
 filename_speed_friction_report <- paste(output_region, bln_speed_or_friction, "report.txt", sep="_")
 filename_traveltime_raster <- paste0(paste(output_region, "travel_time", facilities_subset, sep="_"), ".img")
 filename_traveltime_report <- paste(output_region, facilities_subset, "travel_time.txt", sep="_")
-dir_output_speed_friction <- paste("raster", bln_speed_or_friction, analysis_type, sep="_")
 dir_output_speed_friction <- paste0(output_dir, "/")
 dir_output_traveltime <- paste0(output_dir, "/")
-# dir.create(dir_output_speed_friction)
-# dir.create(dir_output_traveltime)
 
 # Run main speed/friction fn
 do.call(fn_speed_friction, args = args_speed_friction)

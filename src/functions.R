@@ -37,34 +37,6 @@ amSubPunct <- function(vect,
   res
 }
 
-
-amNewName <- function(class, tags, sepClass = config$sepClass, sepTag = config$sepTagFile) {
-  tags <- paste(tags, collapse = sepTag)
-  tags <- amSubPunct(tags, sepTag)
-  paste0(c(class, tags), collapse = sepClass)
-}
-# amNewName('land_cover',c('test','2012'),"$","_")
-# return:
-# [1] "land_cover$test_2012"
-
-
-#' Get data tag
-#'
-#' @param amData name vector or list to evaluate
-#' @return tags
-amGetTag <- function(amData, type = "ui") {
-  if (type == "ui") {
-    if (is.list(amData)) amData <- names(amData)
-    tmp <- gsub(".+(?=\\[)|(\\[)|(\\])", "", amData, perl = T)
-    tmp <- gsub("\\_", " ", tmp)
-    tmp
-  } else {
-    tag <- unlist(strsplit(amData, paste0("\\", config$sepClass)))
-    tag <- unlist(strsplit(tag, config$sepTagFile))
-  }
-}
-
-
 # Get category table for a previously imported raster
 amGetRasterCategory <- function(raster = NULL) {
   if (isEmpty(raster)) stop("No raster map name provided")
@@ -411,45 +383,6 @@ amBridgeRemover <- function(bridgeMap, removeFromMap) {
   print(paste("Bridges from", bridgeMap, "removed from", removeFromMap))
 }
 
-#' amSubQuote
-#'
-#' Remove simple and double quote and newlines. This can be usefull in message
-#' send to javascript functions, popup message, etc.. For complete removal of
-#' non ascii character, use amSubPunct
-#'
-#' @param txt character vector
-#' @export
-amSubQuote <- function(txt) {
-  txt <- gsub("\"", " ", txt)
-  txt <- gsub("\'", " ", txt)
-  txt <- gsub("\n", " ", txt)
-  return(txt)
-}
-
-#' Clean and read table from grass strings output
-#'
-#' @param {Character} text Grass text output
-#' @param {Character} sep Character used as separator
-#' @param {Logical} header Use first line as header
-#' @param {Vector} cols Optional column selection
-#' @return {data.frame}
-#' @export
-amCleanTableFromGrass <- function(text, sep = "|", header = TRUE, cols = NULL, ...) {
-  tbl <- amSubQuote(text) %>%
-    read.table(
-      text = .,
-      sep = sep,
-      header = isTRUE(header),
-      stringsAsFactor = FALSE,
-      ...
-    )
-  
-  if (!isEmpty(cols)) {
-    tbl <- tbl[cols]
-  }
-  return(tbl)
-}
-
 #' Compose random char name
 #' @param prefix Prefix of the resulting string
 #' @param suffix Suffix of the resultiing string
@@ -554,18 +487,7 @@ sysEvalFreeMbDisk <- function() {
   return(as.integer(free))
 }
 
-#' Evaluate disk space total
-#' @return disk space available in MB
-sysEvalSizeMbDisk <- function() {
-  # free <- system('df --output=size -BM "$PWD" | sed "1d;s/[^0-9]//g"',intern=T)
-  #
-  # Alpine
-  #                                        * -> $3
-  # Filesystem           1M-blocks      Used Available Use% Mounted on
-  # overlay                 120695    117784         0 100% /
-  used <- system("df -BM $GISDBASE | tail -n1 | awk '{print $3}'", intern = T)
-  return(as.integer(used))
-}
+
 
 #' Evalutate memory available. This is experimental
 #' @return Available memory in MB
@@ -1378,7 +1300,7 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   # count population on facilities sites
   #
   if (!is.null(mapPop)) {
-    tblPop <- amGetFacilitiesTableWhatRast(map, mapPop)
+    tblPop <- amGetFacilitiesTableWhatRast(mapHf, mapPop)
     names(tblPop) <- c("cat", "amPopCell")
     tblPop[is.na(tblPop$amPopCell), "amPopCell"] <- 0
     #
@@ -1406,13 +1328,6 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   tbl <- merge(tbl, tblHf, by = "cat")
   
   return(tbl)
-}
-
-
-check_region <- function(prev_region=NULL, tag=NULL) {
-  current_region <- execGRASS("g.region", flags="p", intern=T)
-  print(current_region)
-  print(paste("REGION TAG:  ", tag))
 }
 
 #' Import temporary shapefile catchment to final directory
