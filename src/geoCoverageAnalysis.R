@@ -1,4 +1,3 @@
-
 #    AccessMod 5 refactor for Virtue Foundation
 #    re-writing features of AccessMod 5 as streamlined R functions accessible from command line
 
@@ -27,76 +26,110 @@
 
 
 ########################## Setup
-#!/usr/bin/env Rscript
+# !/usr/bin/env Rscript
 source("config.R")
 source("functions-geo.R")
 
-option_list = list(
+option_list <- list(
   # Required Inputs
-  make_option("--lcv", type="character", default=NULL, 
-              help="Path to merged land cover raster file (required)"),
-  make_option("--dem", type="character", default=NULL, 
-              help="Path to elevation file (required)"),
-  make_option("--pop", type="character", default=NULL, 
-              help="Path to population raster file (required)"),
-  make_option("--scenarios", type="character", default=NULL,
-              help="Path to scenario table file (required)"),
-  make_option("--facilities", type="character", default=NULL,
-              help="Path to facilities file (required)"),
-  
+  make_option("--lcv",
+    type = "character", default = NULL,
+    help = "Path to merged land cover raster file (required)"
+  ),
+  make_option("--dem",
+    type = "character", default = NULL,
+    help = "Path to elevation file (required)"
+  ),
+  make_option("--pop",
+    type = "character", default = NULL,
+    help = "Path to population raster file (required)"
+  ),
+  make_option("--scenarios",
+    type = "character", default = NULL,
+    help = "Path to scenario table file (required)"
+  ),
+  make_option("--facilities",
+    type = "character", default = NULL,
+    help = "Path to facilities file (required)"
+  ),
+
   # Optional Inputs
-  make_option("--admin", type="character", default=NULL,
-              help="Path to admin boundaries vector (not required)"),
-  
+  make_option("--admin",
+    type = "character", default = NULL,
+    help = "Path to admin boundaries vector (not required)"
+  ),
+
   # Required Parameters
-  make_option("--name", type="character", default=NULL,
-              help="Name of the region / output save  name (required)"),
-  make_option("--analysis_type", type="character", default=NULL,
-              help="Type of the analysis (aniso/isotropic) (required)"),
-  make_option("--f_order", type="character", default=NULL,
-              help="Name of facilities column for order in which to analyze coverage"),
-  make_option("--f_name", type="character", default=NULL,
-              help="Name of column in facilities table that contains facility name",metavar="character"),
-  
+  make_option("--name",
+    type = "character", default = NULL,
+    help = "Name of the region / output save  name (required)"
+  ),
+  make_option("--analysis_type",
+    type = "character", default = NULL,
+    help = "Type of the analysis (aniso/isotropic) (required)"
+  ),
+  make_option("--f_order",
+    type = "character", default = NULL,
+    help = "Name of facilities column for order in which to analyze coverage"
+  ),
+  make_option("--f_name",
+    type = "character", default = NULL,
+    help = "Name of column in facilities table that contains facility name", metavar = "character"
+  ),
+
   # Optional parameters
-  make_option("--max_time", type="double", default=0,
-              help="Maximum duration of travel considered"),
-  make_option("--knights_move", type="character", default=F, action="store_true",
-              help="Allow knight's move for traversing the landscape"),
-  make_option("--output_dir", type="character", default=".", 
-              help="output directory path"),
-  make_option("--f_subset", type="character", default="all",
-              help="Name of boolean facilities column for inclusion in subset"),
-  make_option("--f_capacity", type="character", default=NULL,
-              help="Name of capacity column in facilities table, if left unset will run without considering capacity"),
-  make_option("--zonal_column", type="character", default=NULL,
-              help="Name of column in admin boundaries table that contains zone name",metavar="character"),
-  
+  make_option("--max_time",
+    type = "double", default = 0,
+    help = "Maximum duration of travel considered"
+  ),
+  make_option("--knights_move",
+    type = "character", default = F, action = "store_true",
+    help = "Allow knight's move for traversing the landscape"
+  ),
+  make_option("--output_dir",
+    type = "character", default = ".",
+    help = "output directory path"
+  ),
+  make_option("--f_subset",
+    type = "character", default = "all",
+    help = "Name of boolean facilities column for inclusion in subset"
+  ),
+  make_option("--f_capacity",
+    type = "character", default = NULL,
+    help = "Name of capacity column in facilities table, if left unset will run without considering capacity"
+  ),
+  make_option("--zonal_column",
+    type = "character", default = NULL,
+    help = "Name of column in admin boundaries table that contains zone name", metavar = "character"
+  ),
+
   # Diagnostic
-  make_option("--debug_print", type="character", default=T, action="store_true",
-              help="Print diagnostic info to std-out")
+  make_option("--debug_print",
+    type = "character", default = T, action = "store_true",
+    help = "Print diagnostic info to std-out"
+  )
 )
 
 # Input validation
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
+opt_parser <- OptionParser(option_list = option_list)
+opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "pop", "scenarios", "facilities")
 missing_inputs <- required_inputs[!required_inputs %in% names(opt)]
-sink(paste0("../logs/", "geographic_coverage_analysis.log"), append=FALSE, split=TRUE, type = "output")
+sink(paste0("../logs/", "geographic_coverage_analysis.log"), append = FALSE, split = TRUE, type = "output")
 # sink(type="message") requires a connection (not a filename string) and only
 # one message diversion may be active at a time; closed before reopening below.
 .errCon <- file(paste0("../logs/", "geographic_coverage_analysis_error.log"), open = "wt")
 sink(.errCon, type = "message")
-if(length(missing_inputs)>0) {
+if (length(missing_inputs) > 0) {
   print("Missing the following required file inputs, please check")
   print(paste(missing_inputs, collapse = ", "))
   stop()
 }
 required_params <- c("name", "analysis_type", "f_order", "f_name")
 missing_params <- required_params[!required_params %in% names(opt)]
-if(length(missing_params)>0) {
+if (length(missing_params) > 0) {
   print("Missing the following required parameters, please check")
-  print(paste(missing_params, collapse=", "))
+  print(paste(missing_params, collapse = ", "))
   stop()
 }
 
@@ -106,12 +139,16 @@ path_dem <- clean_filepath(opt$dem)
 path_pop <- clean_filepath(opt$pop)
 path_scenarios <- clean_filepath(opt$scenarios)
 path_facilities <- clean_filepath(opt$facilities)
-if("admin" %in% names(opt)) {path_admin <- clean_filepath(opt$admin)} else {path_admin <- NULL}
+if ("admin" %in% names(opt)) {
+  path_admin <- clean_filepath(opt$admin)
+} else {
+  path_admin <- NULL
+}
 
 # Parsing parameters
 input_region <- opt$name
 input_analysis_type <- opt$analysis_type
-if(!(input_analysis_type %in% c("isotropic", "anisotropic"))) {
+if (!(input_analysis_type %in% c("isotropic", "anisotropic"))) {
   print("Check your input args: analysis type must be one of: isotropic, anisotropic")
   stop()
 }
@@ -123,7 +160,7 @@ input_f_subset_col <- opt$f_subset
 
 ignoreCapacity <- FALSE
 input_f_capacity_col <- opt$f_capacity
-if(is.null(input_f_capacity_col)) {
+if (is.null(input_f_capacity_col)) {
   ignoreCapacity <- TRUE
   print("Will run analysis without considering capacities")
 }
@@ -146,8 +183,10 @@ if ((!is.null(path_admin)) & (!is.null(input_zonal_col))) {
 debug_print <- opt$debug_print
 
 output_dir <- clean_filepath(opt$output_dir)
-if(!dir.exists(output_dir)) {dir.create(output_dir)}
-sink(paste0(output_dir, "/", "output_log.txt"), append=FALSE, split=TRUE, type = "output")
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir)
+}
+sink(paste0(output_dir, "/", "output_log.txt"), append = FALSE, split = TRUE, type = "output")
 # Close the early message sink before opening the run-specific one (R allows
 # only one message diversion at a time).
 sink(type = "message")
@@ -155,30 +194,30 @@ close(.errCon)
 .errCon <- file(paste0(output_dir, "/", "error_log.txt"), open = "wt")
 sink(.errCon, type = "message")
 
-if(debug_print) print("Arguments accepted. Setting projection")
+if (debug_print) print("Arguments accepted. Setting projection")
 
 # Projection setting
 # First check if a proj is already loaded, if there is then we likely want to keep it
 # If not though, get proj info from input lcv and pass it to GRASS
 # Make sure to stay in the same mapset
-current_mapset <- execGRASS("g.mapset", flags="p", intern=T)
-if(debug_print) print(paste("Current mapset is ", current_mapset))
+current_mapset <- execGRASS("g.mapset", flags = "p", intern = T)
+if (debug_print) print(paste("Current mapset is ", current_mapset))
 print("Setting projection")
-execGRASS("g.mapset", parameters=list(mapset="PERMANENT"))
-execGRASS("g.proj", flags="c", parameters=list(georef=path_lcv))
-execGRASS("g.mapset", parameters=list(mapset=current_mapset))
+execGRASS("g.mapset", parameters = list(mapset = "PERMANENT"))
+execGRASS("g.proj", flags = "c", parameters = list(georef = path_lcv))
+execGRASS("g.mapset", parameters = list(mapset = current_mapset))
 print("Set new proj")
 
 ########################## Import and process inputs
 
-if(is_loaded("r_merged_lcv")) {
+if (is_loaded("r_merged_lcv")) {
   print("Land cover is already loaded")
 } else {
-  import_layer(path = path_lcv, layer_name="r_merged_lcv", type="raster")
-  
+  import_layer(path = path_lcv, layer_name = "r_merged_lcv", type = "raster")
+
   # Region
-  region <- execGRASS("g.region", parameters=list(raster="r_merged_lcv"), flags=c("a", "p"), intern=T)
-  
+  region <- execGRASS("g.region", parameters = list(raster = "r_merged_lcv"), flags = c("a", "p"), intern = T)
+
   # Categories
   # lcv_table <- read.table(path_table, sep=",", header=T)
   # tblOut <- tempfile()
@@ -190,38 +229,37 @@ if(is_loaded("r_merged_lcv")) {
   #             quote = F
   # )
   # execGRASS("r.category", map="r_merged_lcv", rules=tblOut)
-  #   
+  #
   # # Colors
   # execGRASS("r.colors", map = "r_merged_lcv", color = "random")
-  
 }
 
 # Import elevation
-if(is_loaded("r_dem")) {
+if (is_loaded("r_dem")) {
   print("Elevation raster is already loaded")
 } else {
-  import_layer(path=path_dem, layer_name="r_dem", type="raster", ignore_proj=T)
+  import_layer(path = path_dem, layer_name = "r_dem", type = "raster", ignore_proj = T)
 }
 
 # Import population
-if(is_loaded("r_pop")) {
+if (is_loaded("r_pop")) {
   print("Population raster is already loaded")
 } else {
-  import_layer(path=path_pop, layer_name="r_pop", type="raster", ignore_proj=T)
+  import_layer(path = path_pop, layer_name = "r_pop", type = "raster", ignore_proj = T)
 }
 
 # Import facilities
-if(is_loaded("v_hf")) {
+if (is_loaded("v_hf")) {
   print("Health facilities vector is already loaded")
 } else {
-  import_layer(path=path_facilities, layer_name="v_hf", type="vector", ignore_proj=T)
+  import_layer(path = path_facilities, layer_name = "v_hf", type = "vector", ignore_proj = T)
 }
 
 
 # Getting facilities table
-b <- execGRASS("db.select", parameters=list(table="v_hf"), intern=TRUE)
+b <- execGRASS("db.select", parameters = list(table = "v_hf"), intern = TRUE)
 con <- textConnection(b)
-tableFacilities <- read.delim(con, header=TRUE, sep="|", allowEscapes = T, encoding = "UTF-8", quote="", comment.char="")
+tableFacilities <- read.delim(con, header = TRUE, sep = "|", allowEscapes = T, encoding = "UTF-8", quote = "", comment.char = "")
 close(con)
 
 # Subset facilities based on boolean column in table
@@ -235,18 +273,18 @@ if (input_f_subset_col != "all") {
 } else {
   inputHfFinal <- "v_hf"
 }
-if(debug_print) print(inputHfFinal)
+if (debug_print) print(inputHfFinal)
 
 # Import scenario table
-t_scenarios <- read.csv(path_scenarios, check.names=FALSE)
+t_scenarios <- read.csv(path_scenarios, check.names = FALSE)
 names(t_scenarios) <- c("class", "label", "speed", "mode")
 
 # Import admin boundaries table
-if(!is.null(path_admin)) {
-  if(is_loaded("v_admin")) {
+if (!is.null(path_admin)) {
+  if (is_loaded("v_admin")) {
     print("Admin boundaries vector is already loaded")
   } else {
-    import_layer(path=path_admin, layer_name="v_admin", type="vector", ignore_proj=T)
+    import_layer(path = path_admin, layer_name = "v_admin", type = "vector", ignore_proj = T)
   }
 }
 
@@ -254,18 +292,20 @@ if(!is.null(path_admin)) {
 
 # Facilities on barrier (or speed 0)
 
-validated_hf <- amValidateFacilitiesTable(tblHf = tableFacilities,
-                                          mapHf = inputHfFinal,
-                                          mapMerged = "r_merged_lcv",
-                                          mapDem = "r_dem",
-                                          tblSpeed = t_scenarios)
+validated_hf <- amValidateFacilitiesTable(
+  tblHf = tableFacilities,
+  mapHf = inputHfFinal,
+  mapMerged = "r_merged_lcv",
+  mapDem = "r_dem",
+  tblSpeed = t_scenarios
+)
 
 
-if(any(validated_hf$amOnZero)) {
+if (any(validated_hf$amOnZero)) {
   stop("Some facilities are on zero-speed positions on the land cover, please check")
 }
 
-if(any(validated_hf$amOnBarrier)) {
+if (any(validated_hf$amOnBarrier)) {
   stop("Some facilities are on positions in the land cover that are classified as a barrier, please check")
 }
 
@@ -273,7 +313,7 @@ if(any(validated_hf$amOnBarrier)) {
 
 t_pop_on_barrier <- popOnBarrierCheck("r_pop", "r_merged_lcv")
 
-if(t_pop_on_barrier$cells > 0) {
+if (t_pop_on_barrier$cells > 0) {
   stop("Some of the population seems to be located on barrier cells, please adjust your pop raster")
 }
 
@@ -309,8 +349,8 @@ if (!keepFullHfTable) {
     orderField,
     capField,
     hfIdx,
-    hfLab)
-  ]
+    hfLab
+  )]
 }
 
 args <- list(
@@ -363,29 +403,36 @@ list_all_loaded_objs(T)
 # Managing outputs
 
 # Write capacity table
-write.csv(output_list$capacityTable, 
-          file = paste0(output_dir, "/", input_region, "_coverage_analysis_", input_f_subset_col, ".csv"))
+write.csv(output_list$capacityTable,
+  file = paste0(output_dir, "/", input_region, "_coverage_analysis_", input_f_subset_col, ".csv")
+)
 
 # Write zonal table
 if (zonalCoverage) {
   write.csv(output_list$zonalTable,
-            file = paste0(output_dir, "/", input_region, "_zonal_stats_", input_f_subset_col, ".csv"))
+    file = paste0(output_dir, "/", input_region, "_zonal_stats_", input_f_subset_col, ".csv")
+  )
 }
 
 # Check on catchment?
 
 # Export pop raster
-execGRASS("r.out.gdal", parameters=list(input=output_list$popResidualRaster,
-                                        output=paste0(output_dir, "/", input_region,
-                                                      "_pop_resid_", input_f_subset_col, ".img"),
-                                        createopt="COMPRESSED=YES",
-                                        format="HFA"),
-          flags=c("overwrite", "f", "c", "m"))
-report_popresid <- execGRASS("r.report", map=output_list$popResidualRaster, units=c("k","c", "p"), intern=T)
+execGRASS("r.out.gdal",
+  parameters = list(
+    input = output_list$popResidualRaster,
+    output = paste0(
+      output_dir, "/", input_region,
+      "_pop_resid_", input_f_subset_col, ".img"
+    ),
+    createopt = "COMPRESSED=YES",
+    format = "HFA"
+  ),
+  flags = c("overwrite", "f", "c", "m")
+)
+report_popresid <- execGRASS("r.report", map = output_list$popResidualRaster, units = c("k", "c", "p"), intern = T)
 write.table(report_popresid,
-            file = paste0(output_dir, "/", input_region, "_pop_resid_", input_f_subset_col, "report.txt"),
-            row.names = F, quote=FALSE)
+  file = paste0(output_dir, "/", input_region, "_pop_resid_", input_f_subset_col, "report.txt"),
+  row.names = F, quote = FALSE
+)
 
 amCleanupTmpLayers()
-
-

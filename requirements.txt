@@ -1,2 +1,4 @@
 flask
+ruff
+pytest
 

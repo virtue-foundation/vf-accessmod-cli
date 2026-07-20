@@ -3,3 +3,7 @@ tools
 jsonlite
 magrittr
 optparse
+styler
+lintr
+testthat
+covr

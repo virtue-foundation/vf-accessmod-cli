@@ -1,4 +1,3 @@
-
 #    AccessMod 5 refactor for Virtue Foundation
 #    re-writing features of AccessMod 5 as streamlined R functions accessible from command line
 
@@ -44,7 +43,6 @@ amCapacityAnalysis <- function(
   outdir,
   debug_print = FALSE
 ) {
-
   #
   # Set default
   #
@@ -66,7 +64,7 @@ amCapacityAnalysis <- function(
 
   # Set maxSpeed
   maxSpeed <- ifelse(isTRUE(useMaxSpeedMask), max(tableScenario$speed), 0)
-  
+
   # # We would subset the table here, but it is already being subset prior to calling this fn
   # (Also this code is old and we should use amFacilitiesSubset())
   # tableFacilities <- tableFacilities[
@@ -103,7 +101,6 @@ amCapacityAnalysis <- function(
   #
 
   if (hfOrder == "tableOrder" || isTRUE(preAnalysis)) {
-
     #
     # order by given field value, take index field values
     #
@@ -114,7 +111,6 @@ amCapacityAnalysis <- function(
       ) %>%
       tableFacilities[., c(hfIdx, orderField)]
   } else {
-
     #
     # Do a pre analysis to sort hf with population coverage
     #
@@ -150,14 +146,13 @@ amCapacityAnalysis <- function(
     # get popTimeMax column from capacity table
     #
     preAnalysisResult <- preAnalysisResult[[
-    "capacityTable"
+      "capacityTable"
     ]][
       c(
         hfIdx,
         "amPopTravelTimeMax"
       )
     ]
-    
 
 
     #
@@ -189,7 +184,7 @@ amCapacityAnalysis <- function(
     hfIdx,
     amOrderField
   )
-  
+
   orderId <- orderResult[[hfIdx]]
 
 
@@ -202,7 +197,6 @@ amCapacityAnalysis <- function(
   inc <- 100 / length(orderId) # init increment for progress bar
   incN <- 0 # init counter for progress bar
   tmpVectCatchOut <- NA
-  
 
 
   # create residual population
@@ -212,9 +206,9 @@ amCapacityAnalysis <- function(
     inputSpeed = outputSpeed,
     outputPopResidual = outputPopResidual
   )
-  
+
   debug_raster_report(map = outputPopResidual)
-  
+
 
   #
   # Population on barrier : map and stat
@@ -227,8 +221,6 @@ amCapacityAnalysis <- function(
       outputMap = outputPopBarrier
     )
   }
-  
-
 
 
   #
@@ -236,7 +228,7 @@ amCapacityAnalysis <- function(
   #
   # if (debug_print) print("facility processing order:")
   # if (debug_print) print(orderId)
-  
+
   for (i in orderId) {
     print(paste("Examining facility", i))
     #
@@ -252,10 +244,11 @@ amCapacityAnalysis <- function(
     if (!ignoreCapacity && anyNA(hfVal)) {
       print(sprintf("WARNING: Facility %s has NA capacity; treating as 0", i))
       write.table(data.frame(xid = i, name = hfName, stringsAsFactors = FALSE),
-                  file = file.path(outdir, "na_capacity_warnings.csv"),
-                  append = file.exists(file.path(outdir, "na_capacity_warnings.csv")),
-                  sep = ",", row.names = FALSE,
-                  col.names = !file.exists(file.path(outdir, "na_capacity_warnings.csv")))
+        file = file.path(outdir, "na_capacity_warnings.csv"),
+        append = file.exists(file.path(outdir, "na_capacity_warnings.csv")),
+        sep = ",", row.names = FALSE,
+        col.names = !file.exists(file.path(outdir, "na_capacity_warnings.csv"))
+      )
     }
     hfCap <- ifelse(
       test = ignoreCapacity,
@@ -302,7 +295,7 @@ amCapacityAnalysis <- function(
         radius           = radius
       )
     )
-    
+
     debug_raster_report(tmpCost)
 
 
@@ -343,7 +336,6 @@ amCapacityAnalysis <- function(
         listSummaryCatchment$amCapacitySummary
       )
     }
-
   } # end of loop
 
   # if (debug_print) print(names(orderResult))
@@ -393,7 +385,7 @@ amCapacityAnalysis <- function(
     #
     # optional zonal coverage using admin zone polygon
     #
-    
+
 
     execGRASS("v.to.rast",
       input            = inputZoneAdmin,
@@ -435,7 +427,7 @@ amCapacityAnalysis <- function(
 
     tblPopByZone$covered <- tblPopByZone$sum.y - tblPopByZone$sum.x
     tblPopByZone$percent <- (tblPopByZone$covered / tblPopByZone$sum.y) * 100
- #   tblPopByZone$sum.x <- NULL
+    #   tblPopByZone$sum.x <- NULL
     names(tblPopByZone) <- c(
       zoneFieldId,
       zoneFieldLabel,
@@ -453,18 +445,18 @@ amCapacityAnalysis <- function(
   if (vectCatch) {
     print("All the files in the temporary catchment vector dir")
     print(tmpVectCatchOut)
-    
+
     amMoveShp(
       shpFile = tmpVectCatchOut,
       outDir = outdir,
       outName = outputHfCatchment
     )
   }
-  
+
   #
   #  create final pop-resid raster result for output
   #
-  execGRASS("g.copy", raster=paste0(outputPopResidual, ",r_pop_resid"))
+  execGRASS("g.copy", raster = paste0(outputPopResidual, ",r_pop_resid"))
 
   #
   # finish process
@@ -486,7 +478,7 @@ amCapacityAnalysis <- function(
   #   on_exit_add({
   #     dbDisconnect(dbCon)
   #   })
-  # 
+  #
   #   #
   #   # Write summary table in db
   #   #
@@ -517,29 +509,29 @@ popOnBarrierCheck <- function(r_pop, r_lcv) {
     tmpMapPop <- "tmp__test_pop_on_barrier"
     execGRASS("r.mask", flags = "i", raster = r_lcv)
     execGRASS("r.mapcalc",
-              flags = "overwrite",
-              expression = paste(tmpMapPop, " = ", r_pop, "")
+      flags = "overwrite",
+      expression = paste(tmpMapPop, " = ", r_pop, "")
     )
     execGRASS("r.mask", flags = "r")
-    
+
     sumPop <- execGRASS("r.univar",
-                        map = tmpMapPop,
-                        flags = c("g", "t"),
-                        intern = T
+      map = tmpMapPop,
+      flags = c("g", "t"),
+      intern = T
     ) %>%
       amCleanTableFromGrass(
         cols = c("non_null_cells", "sum")
       )
-    
+
     origPop <- execGRASS("r.univar",
-                         map = r_pop,
-                         flags = c("g", "t"),
-                         intern = T
+      map = r_pop,
+      flags = c("g", "t"),
+      intern = T
     ) %>%
       amCleanTableFromGrass(
         cols = c("sum")
       )
-    
+
     return(
       list(
         sum = round(sumPop$sum, 2),
@@ -567,37 +559,36 @@ amInitPopResidual <- function(inputPop = NULL,
                               inputSpeed = NULL,
                               outputPopResidual = NULL) {
   inputTest <- inputFriction
-  
+
   if (isEmpty(inputTest) || !amRastExists(inputTest)) {
     inputTest <- inputSpeed
     if (!amRastExists(inputTest)) {
       stop("amInitPopResidual: no valid test layer")
     }
   }
-  
+
   if (isEmpty(inputPopResidual)) {
     inputPopResidual <- inputPop
   }
-  
+
   expPopResidual <- sprintf(
     "%1$s = if(((%2$s > 0)&&&(%3$s > 0)), %2$s,0)",
     outputPopResidual,
     inputPopResidual,
     inputTest
   )
-  
+
   if (isEmpty(expPopResidual)) {
     stop(
       "Missing the residual layer, something's up"
     )
   }
-  
+
   execGRASS(
     "r.mapcalc",
     expression = expPopResidual,
     flags = "overwrite"
   )
-
 }
 
 
@@ -620,8 +611,8 @@ amInnerRing <- function(inputMapTravelTime, inputMapPopResidual, lowerOrEqualToZ
     stop("amInnerRing issue, empty expression!")
   }
   execGRASS("r.mapcalc",
-            expression = expInner,
-            flags = "overwrite"
+    expression = expInner,
+    flags = "overwrite"
   )
 }
 
@@ -644,8 +635,8 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
     stop("amOuterRing issue, empty expression!")
   }
   execGRASS("r.mapcalc",
-            expression = expOuter,
-            flags = "overwrite"
+    expression = expOuter,
+    flags = "overwrite"
   )
 }
 
@@ -672,98 +663,96 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
 #' @return A named list Containing the capacity analysis (amCapacityTable), the path to the shapefile (amCatchmentFilePath) and a message (msg).
 #' @export
 amCatchmentAnalyst <- function(
-    inputTablePopByZone = NULL,
-    inputMapTravelTime,
-    inputMapPopInit,
-    inputMapPopResidual,
-    outputCatchment,
-    facilityId,
-    facilityIndexField,
-    facilityName,
-    facilityNameField,
-    facilityCapacity,
-    facilityCapacityField,
-    facilityLabel = NULL,
-    facilityLabelField,
-    iterationNumber,
-    maxTravelTime,
-    ignoreCapacity = FALSE,
-    addColumnPopOrigTravelTime = FALSE,
-    removeCapted = TRUE,
-    vectCatch = TRUE,
-    outdir,
-    language = config$language) {
-  
-  
+  inputTablePopByZone = NULL,
+  inputMapTravelTime,
+  inputMapPopInit,
+  inputMapPopResidual,
+  outputCatchment,
+  facilityId,
+  facilityIndexField,
+  facilityName,
+  facilityNameField,
+  facilityCapacity,
+  facilityCapacityField,
+  facilityLabel = NULL,
+  facilityLabelField,
+  iterationNumber,
+  maxTravelTime,
+  ignoreCapacity = FALSE,
+  addColumnPopOrigTravelTime = FALSE,
+  removeCapted = TRUE,
+  vectCatch = TRUE,
+  outdir,
+  language = config$language
+) {
   #
   # Check input before going further
   #
   if (!ignoreCapacity && isEmpty(facilityCapacity)) {
     stop(sprintf(ams("analysis_catchment_error_capacity_not_valid"), facilityId))
   }
-  
-  
+
+
   #
   # Init variables
   #
-  
+
   # population residual, not covered by this facility
   outputMapPopResidualPatch <- "tmp__map_residual_patch"
   outputMapPopResidual <- inputMapPopResidual
-  
 
-  
+
   # retrieve the path to the catchment
   pathToCatchment <- file.path(tempdir(), paste0(outputCatchment, ".gpkg"))
-  
+
   # travel time / cost map
   travelTime <- inputMapTravelTime
-  
+
   # limit of the travel time map used to create the vector catchment
   timeLimitVector <- as.numeric(NA)
-  
+
   # correlation between the population and the time zone
   #   negative value = covered pop decrease with dist,
   #   positive value = covered pop increase with dist
   corPopTime <- as.numeric(NA)
-  
+
   # popByZone inner ring
   pbzIn <- as.numeric(NA)
-  
+
   # popByZone outer ring
   pbzOut <- as.numeric(NA)
-  
+
   # capacity of the facility at start, will be updated with the capacity not used
   capacityResidual <- facilityCapacity
-  
+
   # capacity realised
   capacityRealised <- as.numeric(NA)
-  
+
   # total pop in catchment area
   popCatchment <- as.numeric(NA)
-  
+
   # total pop in maximum travel time area
   popTravelTimeMax <- as.numeric(NA)
-  
+
   # population of the first zone with at least one indivual
   popTravelTimeMin <- as.numeric(NA)
-  
+
   # total pop in maximum travel time area with original population
   popOrigTravelTimeMax <- as.numeric(NA)
-  
+
   # percent of the initial population not in population residual
   popCoveredPercent <- as.numeric(NA)
-  
+
   # population in the catchment not covered (outer ring residual)
   popNotIncluded <- as.numeric(NA)
-  
+
   # other pop reporting
   popResidualBefore <- as.numeric(NA)
   popResidualAfter <- as.numeric(NA)
-  
+
   # population by zone is empty
   isEmpty <- TRUE
-  
+
   # If pop by zone is not given, extract it
   if (is.null(inputTablePopByZone)) {
     pbz <- amGetRasterStatZonal(
@@ -773,9 +762,9 @@ amCatchmentAnalyst <- function(
   } else {
     pbz <- inputTablePopByZone
   }
-  
+
   write.csv(pbz, "pbz.csv")
-  
+
   #
   # Total pop under travel time with original population
   #
@@ -788,27 +777,26 @@ amCatchmentAnalyst <- function(
         hasMask <- amRastExists("MASK")
         if (hasMask) {
           execGRASS("r.mask",
-                    flags = "r"
+            flags = "r"
           )
         }
-      },
-      {
+      }, {
         #
         # Set a mask to extract catchment
         #
         execGRASS("r.mask",
-                  raster = inputMapTravelTime
+          raster = inputMapTravelTime
         )
         popOrigTravelTimeMax <- amGetRasterStat(inputMapPopInit, "sum")
       }
     )
   }
-  
+
   # check if whe actually have zone
   isEmpty <- isTRUE(nrow(pbz) == 0)
-  
+
   # starting population
-  
+
   popTotal <- amGetRasterStat(inputMapPopInit, "sum")
   popTotalNotOnBarrier <- amGetRasterStat(inputMapPopResidual, "sum")
   popResidualBefore <- amGetRasterStat(inputMapPopResidual, "sum")
@@ -820,16 +808,16 @@ amCatchmentAnalyst <- function(
     popTravelTimeMax <- tail(pbz, n = 1)$cumSum
     # popTravelTimeMin <- head(pbz,n=1)$cumSum
     popTravelTimeMin <- head(pbz[pbz$cumSum > 0, ], n = 1)$cumSum
-    
+
     # if ignore capacity, use all
     if (ignoreCapacity) {
       facilityCapacity <- popTravelTimeMax
       capacityResidual <- popTravelTimeMax
     }
-    
+
     # Check time vs pop correlation :
     corPopTime <- cor(pbz$zone, pbz$sum)
-    
+
     #
     # Last iso band where pop is lower or equal the capacity
     #
@@ -845,8 +833,8 @@ amCatchmentAnalyst <- function(
       popInner <- pbzIn$cumSum
       zoneInner <- pbzIn$zone
     }
-    
-    
+
+
     #
     # First iso bad where pop is greater than the capacity
     #
@@ -854,13 +842,13 @@ amCatchmentAnalyst <- function(
     popOuter <- pbzOut$cumSum
     popOuterBand <- pbzOut$sum
     zoneOuter <- pbzOut$zone
-    
-    
+
+
     # Case evaluation.
     # e.g.
     # Capacity = 10 (pop)
     # Time limit = 4 (zone)
-    
+
     #     A         | B           | C         | D
     #     z  p      | z  p        | z  p      | z  p
     #     ----      | ----        | ----      | ----
@@ -870,7 +858,7 @@ amCatchmentAnalyst <- function(
     #     3 9 _ 9;1 | 3 25        | 3 5       | 3 10 -- 10;0
     #     4 15      | 4 50        | 4 6 _ 6;0 | 4 11
     #
-    
+
     #   case       | A   | B   | C  | D
     #   --------------------------------
     #   inner      | 9   | 0   | 6  | 10
@@ -880,33 +868,33 @@ amCatchmentAnalyst <- function(
     #   catchment  | out | out | in | in
     #   pop remove |  T  |  F  | T  | T
     #   out ratio  |  T  |  T  | F  | F
-    
+
     # ignore capacity
     isE <- isTRUE(ignoreCapacity)
-    
+
     # D
     # Inner catchment match the facility capacity
     isD <- !isE && isTRUE(facilityCapacity == popInner)
-    
+
     # C
     # Capacity greater than max available pop
     isC <- !isE && isTRUE(facilityCapacity > popTravelTimeMax)
-    
+
     # test for B
     isB <- !isE && isTRUE(facilityCapacity < popTravelTimeMin)
-    
+
     # test for A
     isA <- !isE && isTRUE(popInner > 0 && popOuter > 0)
-    
+
     type <- NULL
-    
+
     if (isE) {
       type <- "E"
-      
+
       timeLimitVector <- maxTravelTime
       facilityCapacity <- popTravelTimeMax
       capacityResidual <- 0
-      
+
       if (removeCapted) {
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
@@ -916,10 +904,10 @@ amCatchmentAnalyst <- function(
       }
     } else if (isD) {
       type <- "D"
-      
+
       capacityResidual <- 0
       timeLimitVector <- zoneInner
-      
+
       if (removeCapted) {
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
@@ -929,10 +917,10 @@ amCatchmentAnalyst <- function(
       }
     } else if (isC) {
       type <- "C"
-      
+
       capacityResidual <- facilityCapacity - popTravelTimeMax
       timeLimitVector <- zoneInner
-      
+
       if (removeCapted) {
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
@@ -942,10 +930,10 @@ amCatchmentAnalyst <- function(
       }
     } else if (isB) {
       type <- "B"
-      
+
       capacityResidual <- 0
       timeLimitVector <- zoneOuter
-      
+
       if (removeCapted) {
         amOuterRing(
           inputMapTravelTime = inputMapTravelTime,
@@ -956,18 +944,18 @@ amCatchmentAnalyst <- function(
       }
     } else if (isA) {
       type <- "A"
-      
+
       capacityResidual <- 0
       timeLimitVector <- zoneOuter
-      
-      
+
+
       if (removeCapted) {
         amInnerRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
           lowerOrEqualToZone = zoneInner
         )
-        
+
         amOuterRing(
           inputMapTravelTime = inputMapTravelTime,
           inputMapPopResidual = inputMapPopResidual,
@@ -989,19 +977,19 @@ amCatchmentAnalyst <- function(
         )
       )
     }
-    
-    if(debug_print) print("################ CATCHMENT TYPE")
+
+    if (debug_print) print("################ CATCHMENT TYPE")
     if (debug_print) print(type)
-    
+
     # cat("Type", type, " | ", "id", facilityId, "\n" );
-    
+
     #
     # get other value to return
     #
     capacityRealised <- facilityCapacity - capacityResidual
     popCatchment <- max(pbz[pbz$zone <= timeLimitVector, "cumSum"])
     popNotIncluded <- round(popCatchment - capacityRealised, 6)
-    
+
     if (vectCatch) {
       #
       # Extract the catchment as vector
@@ -1014,18 +1002,17 @@ amCatchmentAnalyst <- function(
           hasMask <- amRastExists("MASK")
           if (hasMask) {
             execGRASS("r.mask",
-                      flags = "r"
+              flags = "r"
             )
           }
-        },
-        {
+        }, {
           #
           # Set a mask to extract catchment
           #
           execGRASS("r.mask",
-                    raster   = inputMapTravelTime,
-                    maskcats = sprintf("0 thru %s", timeLimitVector),
-                    flags    = c("overwrite")
+            raster   = inputMapTravelTime,
+            maskcats = sprintf("0 thru %s", timeLimitVector),
+            flags    = c("overwrite")
           )
           #
           # Catchment additional attributes
@@ -1034,7 +1021,7 @@ amCatchmentAnalyst <- function(
           aCols[facilityIndexField] <- facilityId
           aCols[facilityNameField] <- facilityName
           aCols["type"] <- type
-          
+
           #
           # extraction process
           #
@@ -1051,7 +1038,7 @@ amCatchmentAnalyst <- function(
       )
     }
   }
-  
+
   # Population covered
   #
   # ( 1346 tot - 0 residual ) / 1346 => 100% coverage
@@ -1059,7 +1046,7 @@ amCatchmentAnalyst <- function(
   #
   popResidualAfter <- amGetRasterStat(inputMapPopResidual, "sum")
   popCoveredPercent <- (popTotalNotOnBarrier - popResidualAfter) / popTotalNotOnBarrier * 100
-  
+
   #
   # Output capacity table
   #
@@ -1083,24 +1070,24 @@ amCatchmentAnalyst <- function(
     amPopResidualAfter       = popResidualAfter,
     amPopResidualBefore      = popResidualBefore
   )
-  
+
   #
   # renaming table
   #
   names(outList)[names(outList) == "amId"] <- facilityIndexField
   names(outList)[names(outList) == "amName"] <- facilityNameField
   names(outList)[names(outList) == "amLabel"] <- facilityLabelField
-  
+
   if (!ignoreCapacity) {
     names(outList)[names(outList) == "amCapacity"] <- facilityCapacityField
   }
-  
+
   outList <- outList[!sapply(outList, is.null)]
-  
+
   if (addColumnPopOrigTravelTime) {
     outList$amPopOrigTravelTimeMax <- popOrigTravelTimeMax
   }
-  
+
   #
   # Result message
   #
@@ -1109,7 +1096,7 @@ amCatchmentAnalyst <- function(
     iterationNumber,
     round(popCoveredPercent, 4)
   )
-  
+
   list(
     amCatchmentFilePath = pathToCatchment,
     amCapacitySummary = as.data.frame(outList),
@@ -1128,7 +1115,7 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
   # compute integer version of cumulative cost map to use with r.univar
   #
   ttIsCell <- amRasterMeta(mapZones)[["datatype"]] == "CELL"
-  
+
   if (!ttIsCell) {
     exprIntCost <- sprintf(
       "%1$s = %1$s >= 0 ? round( %1$s ) : null() ",
@@ -1136,7 +1123,7 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
     )
     execGRASS("r.mapcalc", expression = exprIntCost, flags = "overwrite")
   }
-  
+
   #
   # compute zonal statistic : time isoline as zone
   #
@@ -1148,7 +1135,7 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
     intern = T
   ) %>%
     amCleanTableFromGrass()
-  
+
   #
   # rm na/nan (case when corresponding zone have no value)
   # -> column sum selection is arbitrary, but used in cumSum, which
@@ -1172,9 +1159,9 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
 #' @export
 amRasterMeta <- function(raster = NULL) {
   tblMeta <- execGRASS("r.info",
-                       map = raster,
-                       flags = "g",
-                       intern = T
+    map = raster,
+    flags = "g",
+    intern = T
   ) %>%
     amCleanTableFromGrass(
       sep = "=",
@@ -1210,9 +1197,9 @@ amGetRasterStat <- function(rasterMap, metric = c("n", "cells", "max", "mean", "
     val <- amParseOptions(execGRASS("r.univar", map = rasterMap, flags = "g", intern = T))[[metric]]
   }
   val <- as.numeric(val)
-  
+
   if (isTRUE(length(val) == 0 || isEmpty(val))) val <- 0L
-  
+
   return(val)
 }
 
@@ -1231,74 +1218,74 @@ amGetRasterStat <- function(rasterMap, metric = c("n", "cells", "max", "mean", "
 #' @return Shapefile path
 #' @export
 amRasterToShape <- function(
-    pathToCatchment,
-    idField,
-    idPos,
-    append = FALSE,
-    inputRaster,
-    outputShape = "tmp__vect_catch",
-    listColumnsValues = list(),
-    oneCat = TRUE
+  pathToCatchment,
+  idField,
+  idPos,
+  append = FALSE,
+  inputRaster,
+  outputShape = "tmp__vect_catch",
+  listColumnsValues = list(),
+  oneCat = TRUE
 ) {
   #
   # Local db connection
   #
   dbCon <- amMapsetGetDbCon()
-  
+
   idField <- ifelse(
     idField == config$vectorKey,
     paste0(config$vectorKey, "_join"),
     idField
   )
-  
+
   listColumnsValues[idField] <- idPos
   listColumnsValues <- listColumnsValues[
     !names(listColumnsValues) %in% config$vectorKey
   ]
-  
+
   tmpRaster <- amRandomName("tmp__r_to_shape")
   tmpVectDissolve <- amRandomName("tmp__vect_dissolve")
-  
-  
+
+
   execGRASS("g.copy", raster = c(inputRaster, tmpRaster))
-  
+
   if (oneCat) {
     expOneCat <- sprintf("%1$s = !isnull(%1$s) ? 1 : null()", tmpRaster)
     execGRASS("r.mapcalc", expression = expOneCat, flags = "overwrite")
   }
-  
+
   #
   # Export input raster to vector
   #
   execGRASS("r.to.vect",
-            input  = tmpRaster,
-            output = outputShape,
-            type   = "area",
-            flags  = c("overwrite")
+    input  = tmpRaster,
+    output = outputShape,
+    type   = "area",
+    flags  = c("overwrite")
   )
-  
+
   #
   # Dissolve result to have unique id by feature
   #
   execGRASS("v.dissolve",
-            input  = outputShape,
-            output = tmpVectDissolve,
-            column = "value",
-            flags  = c("overwrite")
+    input  = outputShape,
+    output = tmpVectDissolve,
+    column = "value",
+    flags  = c("overwrite")
   )
-  
+
   #
   # Create a table for catchment
   #
-  
+
   execGRASS("v.db.addtable",
-            map = tmpVectDissolve,
-            columns="length DOUBLE",
-            flags=c("verbose")
+    map = tmpVectDissolve,
+    columns = "length DOUBLE",
+    flags = c("verbose")
   )
-  
+
   outPath <- pathToCatchment
-  
+
   # for the first catchment : overwrite if exists, else append.
   if (append) {
     outFlags <- c("a", "m", "s")
@@ -1319,7 +1306,7 @@ amRasterToShape <- function(
       tmpVectDissolve
     )
   )
-  
+
   if (length(listColumnsValues) > 0) {
     for (n in names(listColumnsValues)) {
       dbRec[n] <- listColumnsValues[n]
@@ -1327,23 +1314,23 @@ amRasterToShape <- function(
   } else {
     dbRec[idField] <- idPos
   }
-  
+
   # rewrite
   dbWriteTable(dbCon, tmpVectDissolve, dbRec, overwrite = T)
-  
+
   # export to shapefile.
   execGRASS("v.out.ogr",
-            input = tmpVectDissolve,
-            output = outPath,
-            format = "GPKG",
-            flags = outFlags,
-            output_layer = outputShape
+    input = tmpVectDissolve,
+    output = outPath,
+    format = "GPKG",
+    flags = outFlags,
+    output_layer = outputShape
   )
   rmVectIfExists(tmpVectDissolve)
   rmVectIfExists(outputShape)
   rmRastIfExists(tmpRaster)
   dbDisconnect(dbCon)
-    
+
   return(outPath)
 }
 
@@ -1363,11 +1350,11 @@ amMapsetGetDbCon <- function(mapset = NULL) {
   }
   sqlitePath <- file.path(pathGrass, location, mapset, "sqlite/sqlite.db")
   dbCon <- dbConnect(RSQLite::SQLite(), sqlitePath)
-  
+
   if (!dbIsValid(dbCon)) {
     stop("dbCon not valid")
   }
-  
+
   return(dbCon)
 }
 
@@ -1388,22 +1375,21 @@ amMapPopOnBarrier <- function(inputPop,
                               inputSpeed = NULL,
                               outputMap = "tmp_out_pop_barrier") {
   inputTest <- inputMerged
-  
+
   if (!amRastExists(inputTest)) {
     inputTest <- inputSpeed
   }
-  
+
   if (!amRastExists(inputTest)) {
     inputTest <- inputFriction
   }
-  
+
   expr <- sprintf(
     "%1$s = if(!isnull(%2$s) && isnull(%3$s),%2$s,null())",
     outputMap,
     inputPop,
     inputTest
   )
-  
+
   execGRASS("r.mapcalc", expression = expr, flags = "overwrite")
 }
-
