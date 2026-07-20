@@ -1,0 +1,4 @@
+# Normalize R source files to LF line endings
+*.R   text eol=lf
+*.r   text eol=lf
+*.Rmd text eol=lf
