@@ -9,11 +9,11 @@ require(optparse)
 
 config <- list()
 
-#config$sepClass <- ""
+# config$sepClass <- ""
 
 
-config$gisBase = Sys.getenv(x = "GISBASE")
-#setwd(dirname(dirname(parent.frame(2)$ofile)))
+config$gisBase <- Sys.getenv(x = "GISBASE")
+# setwd(dirname(dirname(parent.frame(2)$ofile)))
 config$GrassDataBase <- Sys.getenv(x = "GISDBASE")
 # config$pathCacheDir <- normalizePath("/data/cache/")
 # config$pathGrassDemo <- normalizePath("config/data/demo")
@@ -25,7 +25,7 @@ config$dataClass <- fromJSON(config$pathClasses)
 # get a version grouped by class with class id as key
 config$dataClassList <- split(config$dataClass, config$dataClass$class)
 
-config$vector_key = "cat"
+config$vector_key <- "cat"
 
 config$listTranspMod <- list(
   WALKING = list(rastVal = 1000),
@@ -33,19 +33,21 @@ config$listTranspMod <- list(
   MOTORIZED = list(rastVal = 3000)
 )
 
-config$mapDem = "r_dem"
+config$mapDem <- "r_dem"
 
 # character separator
 config$sepTagFile <- "_"
 config$sepClass <- "__"
 
-grass_session_metadata <- tryCatch(gmeta(), error=function(e) NULL)
+grass_session_metadata <- tryCatch(gmeta(), error = function(e) NULL)
 if (is.null(grass_session_metadata)) {
   print("Initializing GRASS session")
   initGRASS(gisBase = config$gisBase, gisDbase = config$GrassDataBase, override = T)
   print("Successfully initialized GRASS session")
-} else print("GRASS session is already running")
+} else {
+  print("GRASS session is already running")
+}
 
 source("functions.R")
 print("Loaded all functions")
-#source("mergeLandCover.R")
+# source("mergeLandCover.R")
