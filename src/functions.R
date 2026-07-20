@@ -411,45 +411,6 @@ amBridgeRemover <- function(bridgeMap, removeFromMap) {
   print(paste("Bridges from", bridgeMap, "removed from", removeFromMap))
 }
 
-#' amSubQuote
-#'
-#' Remove simple and double quote and newlines. This can be usefull in message
-#' send to javascript functions, popup message, etc.. For complete removal of
-#' non ascii character, use amSubPunct
-#'
-#' @param txt character vector
-#' @export
-amSubQuote <- function(txt) {
-  txt <- gsub("\"", " ", txt)
-  txt <- gsub("\'", " ", txt)
-  txt <- gsub("\n", " ", txt)
-  return(txt)
-}
-
-#' Clean and read table from grass strings output
-#'
-#' @param {Character} text Grass text output
-#' @param {Character} sep Character used as separator
-#' @param {Logical} header Use first line as header
-#' @param {Vector} cols Optional column selection
-#' @return {data.frame}
-#' @export
-amCleanTableFromGrass <- function(text, sep = "|", header = TRUE, cols = NULL, ...) {
-  tbl <- amSubQuote(text) %>%
-    read.table(
-      text = .,
-      sep = sep,
-      header = isTRUE(header),
-      stringsAsFactor = FALSE,
-      ...
-    )
-  
-  if (!isEmpty(cols)) {
-    tbl <- tbl[cols]
-  }
-  return(tbl)
-}
-
 #' Compose random char name
 #' @param prefix Prefix of the resulting string
 #' @param suffix Suffix of the resultiing string
