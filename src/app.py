@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 import functools
-import json
 import os
 import subprocess
 from threading import Thread
 
-from flask import Flask, flash, request, redirect, url_for, send_from_directory
+from flask import Flask, flash, request, redirect, send_from_directory
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -23,15 +22,16 @@ class JobRunner:
     running = False
     source_path = "/workspaces/vf-accessmod-cli/src"
 
+    _JOB_ENDPOINTS = {
+        "landcover": "landcover_endpoint",
+        "accessibility": "accessibility_endpoint",
+        "coverage": "coverage_endpoint",
+    }
+
     def _start_job(self, job):
-        if job == "landcover":
-            self.last_endpoint = self.landcover_endpoint
-        elif job == "accessibility":
-            self.last_endpoint = self.accessibility_endpoint
-        elif job == "coverage":
-            self.last_endpoint = self.coverage_endpoint
-        else:
+        if job not in self._JOB_ENDPOINTS:
             raise ValueError("Unexpected job type")
+        self.last_endpoint = getattr(self, self._JOB_ENDPOINTS[job])
         self.running = True
         self.error = False
 
@@ -281,7 +281,6 @@ def file_transfer():
             flash("No selected file")
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            print("allowed")
             filename = secure_filename(file.filename)
             path = paths.path_output
             os.makedirs(path, exist_ok=True)
