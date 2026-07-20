@@ -2,6 +2,7 @@ require(rgrass)
 require(tools)
 require(jsonlite)
 require(magrittr)
+require(DBI)
 
 require(optparse)
 # require(geojsonio)
