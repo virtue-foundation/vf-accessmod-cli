@@ -29,7 +29,6 @@
 ########################## Setup
 #!/usr/bin/env Rscript
 source("config.R")
-source("functions_accessibility.R")
 
 option_list = list(
   # Inputs

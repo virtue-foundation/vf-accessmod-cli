@@ -1378,7 +1378,7 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   # count population on facilities sites
   #
   if (!is.null(mapPop)) {
-    tblPop <- amGetFacilitiesTableWhatRast(map, mapPop)
+    tblPop <- amGetFacilitiesTableWhatRast(mapHf, mapPop)
     names(tblPop) <- c("cat", "amPopCell")
     tblPop[is.na(tblPop$amPopCell), "amPopCell"] <- 0
     #
