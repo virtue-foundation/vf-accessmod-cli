@@ -1372,16 +1372,6 @@ amMapsetGetDbCon <- function(mapset = NULL) {
 }
 
 
-#' Get am_grass current item
-#'
-#' @param name {Character} Name of the env variable. E.g. GISRC
-#' @return am_grass
-amGrassSessionGetEnv <- function(name) {
-  amg <- gmeta(ignore.stderr = T)
-  print(amg)
-  item <- amg[[name]]
-  return(item)
-}
 
 #' amMapPopOnBarrier
 #'
