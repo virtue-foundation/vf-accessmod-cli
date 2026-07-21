@@ -1,4 +1,4 @@
-FROM ghcr.io/virtue-foundation/vf-accessmod-cli_env:main
+FROM ghcr.io/virtue-foundation/vf-accessmod-cli_env:pr-18
 
 COPY src/ /workspaces/vf-accessmod-cli/src/
 RUN mkdir /workspaces/vf-accessmod-cli/logs

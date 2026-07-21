@@ -26,13 +26,13 @@
 
 # DONE: ENV SETTINGS - avoid making new GRASS session+location every time using gmeta() and proj checks
 
-###############################################################################################################################
+########################################################################################################################
 
 ########
 ##
 ########
 
-###############################################################################################################################
+########################################################################################################################
 
 ########################## Setup
 # !/usr/bin/env Rscript
@@ -59,15 +59,15 @@ option_list <- list(
     help = "path to land use key", metavar = "character"
   ),
   make_option("--debug_print",
-    type = "character", default = F, action = "store_true",
+    type = "character", default = FALSE, action = "store_true",
     help = "Print diagnostic info to std-out", metavar = "character"
   ),
   make_option("--debug-store",
-    type = "character", default = F, action = "store_true",
+    type = "character", default = FALSE, action = "store_true",
     help = "Write GRASS objs into R session env", metavar = "character"
   ),
   make_option("--clean-bridges",
-    type = "character", default = F, action = "store_true",
+    type = "character", default = FALSE, action = "store_true",
     help = "Clean up artefacts of the merge", metavar = "character"
   ),
   make_option("--name",
@@ -107,7 +107,7 @@ if (debug_print) print("Arguments accepted. Setting projection")
 # First check if a proj is already loaded, if there is then we likely want to keep it
 # If not though, get proj info from input lcv and pass it to GRASS
 # Make sure to stay in the same mapset
-current_mapset <- execGRASS("g.mapset", flags = "p", intern = T)
+current_mapset <- execGRASS("g.mapset", flags = "p", intern = TRUE)
 if (debug_print) print(paste("Current mapset is ", current_mapset))
 print("Setting new proj")
 execGRASS("g.mapset", parameters = list(mapset = "PERMANENT"))
@@ -127,14 +127,14 @@ if (is_loaded("r_lcv")) {
   execGRASS("g.region", parameters = list(raster = "r_lcv"), flags = c("m", "a"))
 
   # Categories
-  lcv_table <- read.table(path_table, sep = ",", header = T)
+  lcv_table <- read.table(path_table, sep = ",", header = TRUE)
   tblOut <- tempfile()
   write.table(lcv_table,
     file = tblOut,
-    row.names = F,
-    col.names = F,
+    row.names = FALSE,
+    col.names = FALSE,
     sep = "\t",
-    quote = F
+    quote = FALSE
   )
   execGRASS("r.category", map = "r_lcv", rules = tblOut)
 
@@ -162,7 +162,7 @@ if (path_barrier != "null") {
   if (is_loaded("v_barrier")) {
     print("Linear barrier vector file is already loaded")
   } else {
-    import_layer(path = path_barrier, layer = "v_barrier", type = "vector", ignore_proj = T)
+    import_layer(path = path_barrier, layer = "v_barrier", type = "vector", ignore_proj = TRUE)
 
     if (debug_store) {
       v_barrier <<- read_VECT("v_barrier")
@@ -176,7 +176,7 @@ if (path_barrier != "null") {
   } else {
     # preview table of barrier features
     barrier_table <- amGetTableFeaturesCount("v_barrier", types = c("lines", "areas", "points"))
-    barrier_type <- barrier_table[which.max(barrier_table$count), "type"] %>% gsub("s$", "", .)
+    barrier_type <- gsub("s$", "", barrier_table[which.max(barrier_table$count), "type"])
     if (barrier_type != "line") {
       print("Please check that linear barrier file is lines")
       stop()
@@ -198,7 +198,7 @@ if (path_barrier != "null") {
   }
 
   # Add to stack
-  barrier_stack <- add_to_stack(outNameStack_barrier_line, barrier_stack, back = F)
+  barrier_stack <- add_to_stack(outNameStack_barrier_line, barrier_stack, back = FALSE)
 }
 
 # Barrier - poly
@@ -206,7 +206,7 @@ if (path_barrier_poly != "null") {
   if (is_loaded("v_barrier_poly")) {
     print("Area barrier vector file is already loaded")
   } else {
-    import_layer(path = path_barrier_poly, layer = "v_barrier_poly", type = "vector", ignore_proj = T)
+    import_layer(path = path_barrier_poly, layer = "v_barrier_poly", type = "vector", ignore_proj = TRUE)
     if (debug_store) {
       v_barrier_poly <<- read_VECT("v_barrier_poly")
     }
@@ -221,7 +221,7 @@ if (path_barrier_poly != "null") {
     # preview table of barrier features
     barrier_poly_table <- amGetTableFeaturesCount("v_barrier_poly", types = c("lines", "areas", "points"))
     if (debug_print) print(barrier_poly_table)
-    barrier_poly_type <- barrier_poly_table[which.max(barrier_poly_table$count), "type"] %>% gsub("s$", "", .)
+    barrier_poly_type <- gsub("s$", "", barrier_poly_table[which.max(barrier_poly_table$count), "type"])
     if (barrier_poly_type != "area") {
       print("Please check that area barrier file is areas")
       stop()
@@ -243,7 +243,7 @@ if (path_barrier_poly != "null") {
   }
 
   # Add to stack
-  barrier_stack <- add_to_stack(outNameStack_barrier_poly, barrier_stack, back = F)
+  barrier_stack <- add_to_stack(outNameStack_barrier_poly, barrier_stack, back = FALSE)
 }
 
 
@@ -255,9 +255,9 @@ if (length(barrier_stack) > 1) {
     output = "r_barrier",
     flags = c("overwrite")
   )
-  raster_stack <- add_to_stack("r_barrier", raster_stack, back = F)
+  raster_stack <- add_to_stack("r_barrier", raster_stack, back = FALSE)
 } else if (length(barrier_stack) == 1) {
-  raster_stack <- add_to_stack(barrier_stack, raster_stack, back = F)
+  raster_stack <- add_to_stack(barrier_stack, raster_stack, back = FALSE)
 }
 # If there's no barrier don't add anything to stack
 
@@ -265,7 +265,7 @@ if (length(barrier_stack) > 1) {
 # Import
 
 if (!is_loaded("v_road")) {
-  import_layer(path = path_road, layer = "v_road", type = "vector", ignore_proj = T)
+  import_layer(path = path_road, layer = "v_road", type = "vector", ignore_proj = TRUE)
 }
 
 if (debug_store) {
@@ -349,7 +349,7 @@ for (i in 1:tblN) {
 road_stack <- paste0("r_road_", road_table[[road_class_key]])
 
 # Add road stack to raster stack
-raster_stack <- add_to_stack(road_stack, raster_stack, back = F)
+raster_stack <- add_to_stack(road_stack, raster_stack, back = FALSE)
 
 ######################### Merge
 stackTag <- "merge_stack"
@@ -457,8 +457,8 @@ if (all(is_loaded(raster_stack))) {
     ),
     flags = c("overwrite", "f", "c", "m")
   )
-  report <- execGRASS("r.report", map = merged_lcv_name, units = c("k", "c", "p"), intern = T)
-  write.table(report, file = paste0(output_dir, "/", merged_lcv_name, "_report.txt"), row.names = F)
+  report <- execGRASS("r.report", map = merged_lcv_name, units = c("k", "c", "p"), intern = TRUE)
+  write.table(report, file = paste0(output_dir, "/", merged_lcv_name, "_report.txt"), row.names = FALSE)
   if (debug_store) {
     r_merged_lcv <<- read_RAST(merged_lcv_name)
   }
