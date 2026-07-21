@@ -19,8 +19,10 @@
 # DONE: INPUT: Incorporate and properly parse new parameters (facility columns / zonal column)
 # DONE: VALIDATION: admin boundary input checks, pop on barrier check, table column name checks
 # DONE: MAIN FUNCTION: properly line up parameters to amCapacityAnalysis.R
-# DONE: MAIN FUNCTION: refactor capacity analysis initial pre-processing (max speed, hf table, friction/speed map, initialize pop raster)
-# DONE: MAIN FUNCTION: capacity analysis loop on HFs - transplant code, compute cost map, line up parameters to sub-function
+# DONE: MAIN FUNCTION: refactor capacity analysis initial pre-processing (max speed, hf table,
+# friction/speed map, initialize pop raster)
+# DONE: MAIN FUNCTION: capacity analysis loop on HFs - transplant code, compute cost map, line up
+# parameters to sub-function
 # DONE: OUTPUTS: zonal table using stats pulled from GRASS by r.univar(amCatchmentAnalyst.R)
 # DONE: OUTPUT: get outputs from capacity function, write outputting (writing-to-disk) logic
 
@@ -83,7 +85,7 @@ option_list <- list(
     help = "Maximum duration of travel considered"
   ),
   make_option("--knights_move",
-    type = "character", default = F, action = "store_true",
+    type = "character", default = FALSE, action = "store_true",
     help = "Allow knight's move for traversing the landscape"
   ),
   make_option("--output_dir",
@@ -105,7 +107,7 @@ option_list <- list(
 
   # Diagnostic
   make_option("--debug_print",
-    type = "character", default = T, action = "store_true",
+    type = "character", default = TRUE, action = "store_true",
     help = "Print diagnostic info to std-out"
   )
 )
@@ -170,10 +172,13 @@ input_zonal_col <- opt$zonal_column
 print(path_admin)
 print(input_zonal_col)
 # If admin is set, we need zonal column to be set
-if ((!is.null(path_admin)) & (!is.null(input_zonal_col))) {
+if ((!is.null(path_admin)) && (!is.null(input_zonal_col))) {
   zonalCoverage <- TRUE
-} else if (is.null(path_admin) & !is.null(input_zonal_col)) {
-  print("If you want zonal statistics, please supply both the path to the admin file (--admin) and the name of the zonal column in that file (--zonal_column)")
+} else if (is.null(path_admin) && !is.null(input_zonal_col)) {
+  print(paste(
+    "If you want zonal statistics, please supply both the path to the admin file (--admin)",
+    "and the name of the zonal column in that file (--zonal_column)"
+  ))
   stop()
 } else {
   zonalCoverage <- FALSE
@@ -200,7 +205,7 @@ if (debug_print) print("Arguments accepted. Setting projection")
 # First check if a proj is already loaded, if there is then we likely want to keep it
 # If not though, get proj info from input lcv and pass it to GRASS
 # Make sure to stay in the same mapset
-current_mapset <- execGRASS("g.mapset", flags = "p", intern = T)
+current_mapset <- execGRASS("g.mapset", flags = "p", intern = TRUE)
 if (debug_print) print(paste("Current mapset is ", current_mapset))
 print("Setting projection")
 execGRASS("g.mapset", parameters = list(mapset = "PERMANENT"))
@@ -216,7 +221,7 @@ if (is_loaded("r_merged_lcv")) {
   import_layer(path = path_lcv, layer_name = "r_merged_lcv", type = "raster")
 
   # Region
-  region <- execGRASS("g.region", parameters = list(raster = "r_merged_lcv"), flags = c("a", "p"), intern = T)
+  region <- execGRASS("g.region", parameters = list(raster = "r_merged_lcv"), flags = c("a", "p"), intern = TRUE)
 
   # Categories
   # lcv_table <- read.table(path_table, sep=",", header=T)
@@ -238,28 +243,31 @@ if (is_loaded("r_merged_lcv")) {
 if (is_loaded("r_dem")) {
   print("Elevation raster is already loaded")
 } else {
-  import_layer(path = path_dem, layer_name = "r_dem", type = "raster", ignore_proj = T)
+  import_layer(path = path_dem, layer_name = "r_dem", type = "raster", ignore_proj = TRUE)
 }
 
 # Import population
 if (is_loaded("r_pop")) {
   print("Population raster is already loaded")
 } else {
-  import_layer(path = path_pop, layer_name = "r_pop", type = "raster", ignore_proj = T)
+  import_layer(path = path_pop, layer_name = "r_pop", type = "raster", ignore_proj = TRUE)
 }
 
 # Import facilities
 if (is_loaded("v_hf")) {
   print("Health facilities vector is already loaded")
 } else {
-  import_layer(path = path_facilities, layer_name = "v_hf", type = "vector", ignore_proj = T)
+  import_layer(path = path_facilities, layer_name = "v_hf", type = "vector", ignore_proj = TRUE)
 }
 
 
 # Getting facilities table
 b <- execGRASS("db.select", parameters = list(table = "v_hf"), intern = TRUE)
 con <- textConnection(b)
-tableFacilities <- read.delim(con, header = TRUE, sep = "|", allowEscapes = T, encoding = "UTF-8", quote = "", comment.char = "")
+tableFacilities <- read.delim(con,
+  header = TRUE, sep = "|", allowEscapes = TRUE,
+  encoding = "UTF-8", quote = "", comment.char = ""
+)
 close(con)
 
 # Subset facilities based on boolean column in table
@@ -284,7 +292,7 @@ if (!is.null(path_admin)) {
   if (is_loaded("v_admin")) {
     print("Admin boundaries vector is already loaded")
   } else {
-    import_layer(path = path_admin, layer_name = "v_admin", type = "vector", ignore_proj = T)
+    import_layer(path = path_admin, layer_name = "v_admin", type = "vector", ignore_proj = TRUE)
   }
 }
 
@@ -397,7 +405,7 @@ output_list <- do.call("amCapacityAnalysis", args)
 debug_header("EXAMINING OUTPUTS")
 print(str(output_list))
 debug_header("EXAMINING AVAILABLE OBJECTS IN GRASS")
-list_all_loaded_objs(T)
+list_all_loaded_objs(TRUE)
 
 
 # Managing outputs
@@ -429,10 +437,10 @@ execGRASS("r.out.gdal",
   ),
   flags = c("overwrite", "f", "c", "m")
 )
-report_popresid <- execGRASS("r.report", map = output_list$popResidualRaster, units = c("k", "c", "p"), intern = T)
+report_popresid <- execGRASS("r.report", map = output_list$popResidualRaster, units = c("k", "c", "p"), intern = TRUE)
 write.table(report_popresid,
   file = paste0(output_dir, "/", input_region, "_pop_resid_", input_f_subset_col, "report.txt"),
-  row.names = F, quote = FALSE
+  row.names = FALSE, quote = FALSE
 )
 
 amCleanupTmpLayers()

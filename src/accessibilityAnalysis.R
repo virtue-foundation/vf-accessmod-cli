@@ -9,7 +9,11 @@
 ### maximum travel time
 
 # Outputs:
-# Speed raster of class "speed": Raster format layer containing the spatial distribution of the speeds used in the analysis. The values in the raster correspond to a composite suite of numbers. The first number is the code for the travelling mode (1: walking; 2: bicycling; 3: motorized). The six following numbers is the speed in km/h, with the first 3 numbers for the integer part, and the three following ones for the decimal part. As an example, the number "2012500" corresponds to bicycle with a speed of 12.5 km/h.
+# Speed raster of class "speed": Raster format layer containing the spatial distribution of the speeds
+# used in the analysis. The values in the raster correspond to a composite suite of numbers. The first
+# number is the code for the travelling mode (1: walking; 2: bicycling; 3: motorized). The six following
+# numbers is the speed in km/h, with the first 3 numbers for the integer part, and the three following
+# ones for the decimal part. As an example, the number "2012500" corresponds to bicycle with a speed of 12.5 km/h.
 
 ########################## TO-DO
 
@@ -67,7 +71,7 @@ option_list <- list(
     help = "Name of boolean facilities column for inclusion in subset", metavar = "character"
   ),
   make_option("--knights_move",
-    type = "character", default = F, action = "store_true",
+    type = "character", default = FALSE, action = "store_true",
     help = "Allow knight's move for traversing the landscape", metavar = "character"
   ),
   make_option("--output_dir",
@@ -77,7 +81,7 @@ option_list <- list(
 
   # Diagnostic
   make_option("--debug_print",
-    type = "character", default = T, action = "store_true",
+    type = "character", default = TRUE, action = "store_true",
     help = "Print diagnostic info to std-out", metavar = "character"
   )
 )
@@ -116,7 +120,7 @@ if (debug_print) print("Arguments accepted. Setting projection")
 # First check if a proj is already loaded, if there is then we likely want to keep it
 # If not though, get proj info from input lcv and pass it to GRASS
 # Make sure to stay in the same mapset
-current_mapset <- execGRASS("g.mapset", flags = "p", intern = T)
+current_mapset <- execGRASS("g.mapset", flags = "p", intern = TRUE)
 if (debug_print) print(paste("Current mapset is ", current_mapset))
 print("Setting projection")
 execGRASS("g.mapset", parameters = list(mapset = "PERMANENT"))
@@ -154,14 +158,14 @@ if (is_loaded("r_merged_lcv")) {
 if (is_loaded("r_dem")) {
   print("Elevation raster is already loaded")
 } else {
-  import_layer(path = path_dem, layer_name = "r_dem", type = "raster", ignore_proj = T)
+  import_layer(path = path_dem, layer_name = "r_dem", type = "raster", ignore_proj = TRUE)
 }
 
 # Import facilities
 if (is_loaded("v_hf")) {
   print("Health facilities vector is already loaded")
 } else {
-  import_layer(path = path_facilities, layer_name = "v_hf", type = "vector", ignore_proj = T)
+  import_layer(path = path_facilities, layer_name = "v_hf", type = "vector", ignore_proj = TRUE)
 }
 
 # Getting facilities table
@@ -190,7 +194,9 @@ names(t_scenarios) <- c("class", "label", "speed", "mode")
 
 # Facilities on barrier (or speed 0)
 
-validated_hf <- amValidateFacilitiesTable(tblHf = inputHfFinal, mapMerged = "r_lcv", mapDem = "r_dem", tblSpeed = scenario_table)
+validated_hf <- amValidateFacilitiesTable(
+  tblHf = inputHfFinal, mapMerged = "r_lcv", mapDem = "r_dem", tblSpeed = scenario_table
+)
 if (any(validated_hf$amOnZero)) {
   stop("Some facilities are on zero-speed positions on the land cover, please check")
 }
@@ -241,7 +247,7 @@ args_traveltime <- switch(analysis_type,
     inputSpeed = "r_speed", inputHf = inputHfFinal, inputStop = NULL,
     inputCoord = NULL, outputDir = NULL,
     outputTravelTime = "r_traveltime",
-    outputNearest = NULL, towardsFacilities = T, maxTravelTime = max_time, minTravelTime = NULL,
+    outputNearest = NULL, towardsFacilities = TRUE, maxTravelTime = max_time, minTravelTime = NULL,
     maxSpeed = 0, timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1,
     memory = NULL, rawMode = FALSE, knights_move = knights_move
   )
@@ -265,10 +271,10 @@ execGRASS("r.out.gdal",
   ),
   flags = c("overwrite", "f", "c", "m")
 )
-report_speed_friction <- execGRASS("r.report", map = name_speed_friction_raster, units = c("k", "p"), intern = T)
+report_speed_friction <- execGRASS("r.report", map = name_speed_friction_raster, units = c("k", "p"), intern = TRUE)
 write.table(report_speed_friction,
   file = paste(dir_output_speed_friction, filename_speed_friction_report, sep = ""),
-  row.names = F, quote = F
+  row.names = FALSE, quote = FALSE
 )
 
 # Run main travel time fn
@@ -282,10 +288,10 @@ execGRASS("r.out.gdal",
   ),
   flags = c("overwrite", "f", "c", "m")
 )
-report_traveltime <- execGRASS("r.report", map = "r_traveltime", units = c("k", "c", "p"), intern = T)
+report_traveltime <- execGRASS("r.report", map = "r_traveltime", units = c("k", "c", "p"), intern = TRUE)
 write.table(report_traveltime,
   file = paste(dir_output_traveltime, filename_traveltime_report, sep = ""),
-  row.names = F, quote = FALSE
+  row.names = FALSE, quote = FALSE
 )
 
 amCleanupTmpLayers()
