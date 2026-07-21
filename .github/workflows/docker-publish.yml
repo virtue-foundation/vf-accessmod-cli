@@ -20,7 +20,24 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Parse every R source with the env image's R (4.1.x on ubuntu:22.04),
+  # not the dev's local R. Catches R-version-incompatible syntax (e.g. the
+  # native-pipe `_` placeholder, R 4.5+ only) before it ships into an image
+  # whose R can't run it. parse() is free: no package load, no GRASS.
+  r-parse-check:
+    runs-on: ubuntu-latest
+    container: ghcr.io/virtue-foundation/vf-accessmod-cli_env:main
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse-check all R sources
+        working-directory: ${{ github.workspace }}
+        run: |
+          Rscript -e 'files <- list.files("src", "\\.R$", full.names = TRUE); for (f in files) { parse(file = f); cat("OK:", f, "\n") }; cat("parse OK\n")'
+
   build:
+    needs: r-parse-check
     runs-on: ubuntu-latest
     permissions:
       contents: read
