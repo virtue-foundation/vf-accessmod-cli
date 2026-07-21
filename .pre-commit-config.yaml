@@ -1,0 +1,26 @@
+# pre-commit hooks for the R + Python codebase.
+# Install pre-commit (pip install pre-commit) then: pre-commit install
+# Hooks run against staged files only. R: styler reformats in place, lintr
+# reports (both pick up repo-root .lintr automatically). Python: ruff check
+# lints, ruff-format formats in place. Re-stage after any auto-fix.
+repos:
+  # Bumped past v0.4.3: its renv.lock pins digest 0.6.36, whose raes.c
+  # won't compile against R 4.5 / gcc 14 (implicit Free/Calloc decls).
+  # v0.4.3.9028+ pin digest 0.6.39 which fixed the missing includes.
+  - repo: https://github.com/lorenzwalthert/precommit
+    rev: v0.4.3.9030
+    hooks:
+      - id: style-files
+        # styler writes back; pre-commit re-staging required on reformat.
+      - id: lintr
+        # Fails the commit on any lint finding. To make it advisory only
+        # (report without blocking), add: args: [--warn_only]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff
+        # Lint; --fix auto-fixes safe violations in place.
+        args: [--fix]
+      - id: ruff-format
+        # Format in place; mirrors `ruff format`.

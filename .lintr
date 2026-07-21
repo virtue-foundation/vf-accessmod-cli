@@ -1,23 +1,13 @@
-# Curated lintr config for vf-accessmod-cli
-# Semantic linters enabled from day one; style linters active since
-# the codebase has been normalized by styler (Stage 0).
 linters: linters_with_defaults(
-  # Semantic checks
   unused_import_linter = unused_import_linter(),
-  unused_object_linter = unused_object_linter(),
   unreachable_code_linter = unreachable_code_linter(),
   absolute_path_linter = absolute_path_linter(),
-  cyclocomp_linter = cyclocomp_linter(complexity_limit = 30),
   object_usage_linter = object_usage_linter(),
-  T_and_F_linter = T_and_F_linter(),
-
-  # Cosmetic / style — codebase conforms after styler pass
+  T_and_F_symbol_linter = T_and_F_symbol_linter(),
   infix_spaces_linter = infix_spaces_linter(),
   spaces_inside_linter = spaces_inside_linter(),
   line_length_linter = line_length_linter(length = 120),
-
-  # Suppress defaults that produce noise on this codebase
   commented_code_linter = NULL,
   object_name_linter = NULL,
   object_length_linter = NULL
-)
+  )
