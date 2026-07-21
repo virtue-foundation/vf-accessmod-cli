@@ -1,10 +1,15 @@
 linters: linters_with_defaults(
-  unused_import_linter = unused_import_linter(),
+  # unused_import_linter is intentionally not enabled: config.R attaches every
+  # package (rgrass, tools, DBI, ...) then source()s the helpers that actually
+  # call them (functions.R uses tools::file_ext, etc.), so the per-file linter
+  # flags each require() it cannot resolve cross-file. Same blind spot as
+  # object_usage_linter below. (It is not a default linter, so omitting the
+  # line disables it; assigning NULL would warn "not in defaults".)
   unreachable_code_linter = unreachable_code_linter(),
   absolute_path_linter = absolute_path_linter(),
   # object_usage_linter is unsuited to this codebase: R files load cross-file
   # helpers via source() (config.R -> functions.R) and packages via require()
-  # (rgrass, magrittr, DBI), which the linter cannot trace, so it flags every
+  # (rgrass, DBI), which the linter cannot trace, so it flags every
   # sourced/required symbol as an undefined global. Keep it off project-wide.
   object_usage_linter = NULL,
   T_and_F_symbol_linter = T_and_F_symbol_linter(),
