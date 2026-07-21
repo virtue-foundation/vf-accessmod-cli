@@ -2,7 +2,11 @@ linters: linters_with_defaults(
   unused_import_linter = unused_import_linter(),
   unreachable_code_linter = unreachable_code_linter(),
   absolute_path_linter = absolute_path_linter(),
-  object_usage_linter = object_usage_linter(),
+  # object_usage_linter is unsuited to this codebase: R files load cross-file
+  # helpers via source() (config.R -> functions.R) and packages via require()
+  # (rgrass, magrittr, DBI), which the linter cannot trace, so it flags every
+  # sourced/required symbol as an undefined global. Keep it off project-wide.
+  object_usage_linter = NULL,
   T_and_F_symbol_linter = T_and_F_symbol_linter(),
   infix_spaces_linter = infix_spaces_linter(),
   spaces_inside_linter = spaces_inside_linter(),
