@@ -5,8 +5,8 @@ library(testthat)
 skip_if(!nzchar(Sys.getenv("GISBASE")), "GRASS session not initialized (GISBASE not set)")
 
 # Initialize the session as the entrypoints do
-source("src/config.R")
-source("src/init_session.R")
+source("../src/config.R")
+source("../src/init_session.R")
 
 test_that("GRASS session is operational", {
   # These should return FALSE and not crash, proving the execGRASS wiring is intact.
