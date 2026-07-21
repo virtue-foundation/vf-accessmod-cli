@@ -185,9 +185,13 @@ COPY build_r_packages.sh /build/build_r_packages.sh
 RUN chmod +x /build/build_r_packages.sh && \
   /build/build_r_packages.sh "/build/requirements_r.txt"
 
-COPY requirements.txt /build/requirements.txt
+# uv pinned by digest for reproducible builds; bump deliberately.
+COPY --from=ghcr.io/astral-sh/uv@sha256:93b61e21202b1dab861092748e46bbd6e0e41dd84f59b9174efd2353186e1b47 /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock /build/
 
-RUN pip3 install --no-cache-dir --no-input -r "/build/requirements.txt"
+WORKDIR /build
+
+RUN uv pip install --system --no-cache .
 
 # appended to existing ones.
 ENV AM5_PORT_HTTP=5000 \

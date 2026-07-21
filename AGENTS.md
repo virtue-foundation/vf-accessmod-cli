@@ -12,11 +12,11 @@ Guidance for agents working in `vf-accessmod-cli`. GUI-less, containerized port 
 
 1. **Base env image** — `build-env-image/Dockerfile` builds `ghcr.io/virtue-foundation/vf-accessmod-cli_env:main`:
    - Compiles GRASS 7.8.7 from source (`--without-wxwidgets`, no GUI), applies `patches/`, and builds `modules/r.walk.accessmod` against it.
-   - Installs R packages from `requirements_r.txt` (space-separated, one per line, installed via `build-env-image/build_r_packages.sh`) and Python deps from `requirements.txt` (`flask` only).
+   - Installs R packages from `requirements_r.txt` (space-separated, one per line, installed via `build-env-image/build_r_packages.sh`) and Python deps from `pyproject.toml`/`uv.lock` via `uv pip install --system`.
    - Sets all `AM5_*` / `GISBASE` / `GISDBASE` / `GRASS_*` env vars and exposes `grass` / `grass78`.
 2. **App image** — root `Dockerfile`, `FROM` the env image above. Copies `src/`, runs `flask run --host=0.0.0.0` from `/workspaces/vf-accessmod-cli/src`.
 
-CI (`.github/workflows/`): the env-image workflow only fires on changes under `build-env-image/**`, `requirements.txt`, `requirements_r.txt`. The app-image workflow fires on pushes to `main`/`staging`/`dev-*` and `v*.*.*` tags. If you change an R/Python dependency or the GRASS build, you must update the env image, not just the app image.
+CI (`.github/workflows/`): the env-image workflow fires on changes under `build-env-image/**`, `requirements_r.txt`, `pyproject.toml`, `uv.lock`. The app-image workflow fires on pushes to `main`/`staging`/`dev-*` and `v*.*.*` tags. If you change an R/Python dependency or the GRASS build, you must update the env image, not just the app image.
 
 ## Local dev
 
