@@ -30,6 +30,7 @@
 ########################## Setup
 # !/usr/bin/env Rscript
 source("config.R")
+source("init_session.R")
 source("functions-geo.R")
 
 option_list <- list(

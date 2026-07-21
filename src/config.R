@@ -38,15 +38,6 @@ config$mapDem <- "r_dem"
 config$sepTagFile <- "_"
 config$sepClass <- "__"
 
-grass_session_metadata <- tryCatch(gmeta(), error = function(e) NULL)
-if (is.null(grass_session_metadata)) {
-  print("Initializing GRASS session")
-  initGRASS(gisBase = config$gisBase, gisDbase = config$GrassDataBase, override = TRUE)
-  print("Successfully initialized GRASS session")
-} else {
-  print("GRASS session is already running")
-}
-
 source("functions.R")
 print("Loaded all functions")
 # source("mergeLandCover.R")

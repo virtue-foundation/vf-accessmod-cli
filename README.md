@@ -2,4 +2,27 @@
 
 A GUI-less rewrite of the WHO's [Accessmod 5](https://github.com/unige-geohealth/accessmod) software for use in the Virtue Foundation's Healthcare Analytics pipeline. Contains command line only scripts as well as a Flask based rest API for use in containers.
 
-_This software is a modified version of the World Health Organization's "Accessmod ver, 5" software. This software is not the product of, is not provided by, and is not endorsed or affiliated with, the World Health Organization. The original AccessMod ver. 5 software is © the World Health Organization._
+_This software is a modified version of the World Health Organization's "Accessmod ver, 5" software. This software is not the product of, is not provided by, and is not endorsed or affiliated with, the World Health Organization. The original AccessMod ver. 5 software is © the World Health Organization.
+
+## Testing
+
+### Pre-commit hooks
+
+Run all linters and formatters (styler, lintr, ruff):
+
+    uv run pre-commit run --all-files
+
+### Python tests (pytest)
+
+From repo root — no GRASS required:
+
+    uv run pytest
+
+### R pure-helper tests (testthat)
+
+Runs inside the env container where testthat is installed:
+
+    Rscript tests/run.R
+
+Covers the pure R helper functions in `src/functions.R` (string/parse helpers
+that don't need a GRASS session)._
