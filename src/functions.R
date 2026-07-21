@@ -3,19 +3,19 @@ clean_filepath <- function(path) {
 }
 
 amRastExists <- function(filter = "", mapset = NULL) {
-  return(amLayerExists(filter, mapset, "raster"))
+  amLayerExists(filter, mapset, "raster")
 }
 
 amVectExists <- function(filter = "", mapset = NULL) {
-  return(amLayerExists(filter, mapset, "vector"))
+  amLayerExists(filter, mapset, "vector")
 }
 
 amSubPunct <- function(vect,
                        sep = "_",
-                       rmTrailingSep = T,
-                       rmLeadingSep = T,
-                       rmDuplicateSep = T,
-                       debug = F) {
+                       rmTrailingSep = TRUE,
+                       rmLeadingSep = TRUE,
+                       rmDuplicateSep = TRUE,
+                       debug = FALSE) {
   # vect<-substr("'",'',iconv(vect, to='ASCII//TRANSLIT'))
   res <- sub("[[:punct:]]+|[[:blank:]]+", sep, vect) # replace punctuation by sep
   res <- sub("\n", "", res)
@@ -45,7 +45,7 @@ amGetRasterCategory <- function(raster = NULL) {
 
   tblText <- execGRASS("r.category",
     map = raster,
-    intern = T
+    intern = TRUE
   )
 
   # execGRASS returns a really awkward non-table thing, so we reformat it
@@ -53,33 +53,40 @@ amGetRasterCategory <- function(raster = NULL) {
     tbl <- read.csv(
       text = tblText,
       sep = "\t",
-      header = F,
-      stringsAsFactors = F
+      header = FALSE,
+      stringsAsFactors = FALSE
     )
     if (ncol(tbl) == 2) {
       tbl[, 1] <- as.integer(tbl[, 1])
     }
   }
   names(tbl) <- c("class", "label")
-  return(tbl)
+  tbl
 }
 
 #' Check for no data
 #' @param val Vector to check
 #' @export
 amNoDataCheck <- function(val = NULL) {
-  isTRUE(
-    is.null(val)
-  ) ||
-    isTRUE(
-      isTRUE(is.data.frame(val) && nrow(val) == 0) ||
-        isTRUE(is.list(val) && (length(val) == 0)) ||
-        isTRUE(!is.list(val) && is.vector(val) && (
-          length(val) == 0 ||
-            isTRUE(val[[1]] %in% config$defaultNoData) ||
-            is.na(val[[1]]) ||
-            nchar(val[[1]], allowNA = TRUE) == 0))
-    )
+  if (isTRUE(is.null(val))) {
+    return(TRUE)
+  }
+  if (isTRUE(is.data.frame(val)) && nrow(val) == 0) {
+    return(TRUE)
+  }
+  if (isTRUE(is.list(val)) && length(val) == 0) {
+    return(TRUE)
+  }
+  if (!is.list(val) && is.vector(val)) {
+    if (length(val) == 0) {
+      return(TRUE)
+    }
+    v1 <- val[[1]]
+    if (isTRUE(v1 %in% config$defaultNoData) || is.na(v1) || nchar(v1, allowNA = TRUE) == 0) {
+      return(TRUE)
+    }
+  }
+  FALSE
 }
 
 isEmpty <- function(val = NULL) {
@@ -98,13 +105,13 @@ amGetTableFeaturesCount <- function(vect, types = c("areas", "lines", "points"))
   if (!is_loaded(vect)) {
     return(data.frame(type = character(0), count = numeric(0)))
   }
-  tbl <- execGRASS("v.info", map = vect, flags = "t", intern = T) %>%
+  tbl <- execGRASS("v.info", map = vect, flags = "t", intern = TRUE) |>
     amCleanTableFromGrass(
       sep = "=",
       col.names = c("type", "count")
     )
   tbl <- tbl[tbl$type %in% types, ]
-  return(tbl)
+  tbl
 }
 
 #' Clean and read table from grass strings output
@@ -116,9 +123,9 @@ amGetTableFeaturesCount <- function(vect, types = c("areas", "lines", "points"))
 #' @return {data.frame}
 #' @export
 amCleanTableFromGrass <- function(text, sep = "|", header = TRUE, cols = NULL, ...) {
-  tbl <- amSubQuote(text) %>%
+  tbl <- amSubQuote(text) |>
     read.table(
-      text = .,
+      text = _,
       sep = sep,
       header = isTRUE(header),
       stringsAsFactor = FALSE,
@@ -128,7 +135,7 @@ amCleanTableFromGrass <- function(text, sep = "|", header = TRUE, cols = NULL, .
   if (!isEmpty(cols)) {
     tbl <- tbl[cols]
   }
-  return(tbl)
+  tbl
 }
 
 #' amSubQuote
@@ -143,7 +150,7 @@ amSubQuote <- function(txt) {
   txt <- gsub("\"", " ", txt)
   txt <- gsub("\'", " ", txt)
   txt <- gsub("\n", " ", txt)
-  return(txt)
+  txt
 }
 
 #' Get data class info
@@ -166,7 +173,7 @@ amClassListInfo <- function(class = NULL, value = NULL) {
         res <- c(res, config$dataClassList[[i]][[value]])
       }
     }
-    return(res)
+    res
   }
 }
 
@@ -196,11 +203,11 @@ rmLayerIfExists <- function(filter = "", type = c("vector", "raster")) {
   )
 }
 rmRastIfExists <- function(filter = "") {
-  return(rmLayerIfExists(filter, "raster"))
+  rmLayerIfExists(filter, "raster")
 }
 
 rmVectIfExists <- function(filter = "", names = "") {
-  return(rmLayerIfExists(filter, "vector"))
+  rmLayerIfExists(filter, "vector")
 }
 
 amLayerExists <- function(filter = "", mapset = "",
@@ -221,7 +228,7 @@ amLayerExists <- function(filter = "", mapset = "",
     },
     error = function(e) {
       warning(e)
-      return(FALSE)
+      FALSE
     }
   )
 }
@@ -235,7 +242,7 @@ grass_print_info <- function(map, type = c("raster", "vector")) {
 }
 
 # Import a new data object, with different parameters based on object type
-import_layer <- function(path, type, layer_name, ignore_proj = F, overwrite = F) {
+import_layer <- function(path, type, layer_name, ignore_proj = FALSE, overwrite = FALSE) {
   import_fn <- switch(type,
     raster = "r.in.gdal",
     vector = "v.in.ogr"
@@ -264,29 +271,29 @@ import_layer <- function(path, type, layer_name, ignore_proj = F, overwrite = F)
 }
 
 # Check if an object by a certain name already exists
-is_loaded <- function(name, type = "all", overwrite = F) {
+is_loaded <- function(name, type = "all", overwrite = FALSE) {
   if (overwrite) {
     return(FALSE)
   }
-  available_data <- execGRASS("g.list", parameters = list(type = type), flags = "t", intern = T) %>%
-    read.csv(text = ., sep = "/", header = F, col.names = c("type", "name"))
+  available_data <- execGRASS("g.list", parameters = list(type = type), flags = "t", intern = TRUE) |>
+    read.csv(text = _, sep = "/", header = FALSE, col.names = c("type", "name"))
   is_avail <- name %in% available_data$name
   # this_type = available_data[available_data$name == name, "type"][[1]]
   # if (is_avail) print(paste0(this_type, " by name of ", name, " is already loaded"))
-  return(is_avail)
+  is_avail
 }
 
 is_a_dir <- function(path) {
   file_ext(path) == ""
 }
 
-add_to_stack <- function(obj, stack = NULL, back = F) {
+add_to_stack <- function(obj, stack = NULL, back = FALSE) {
   if (back) {
     new_stack <- c(stack, obj)
   } else {
     new_stack <- c(obj, stack)
   }
-  return(new_stack)
+  new_stack
 }
 
 get_shapefile_dir <- function(path) {
@@ -294,19 +301,19 @@ get_shapefile_dir <- function(path) {
 }
 
 # TO-DO: Could convert type/name notation into a df
-list_all_loaded_objs <- function(print_type = F, type = "all") {
+list_all_loaded_objs <- function(print_type = FALSE, type = "all") {
   if (print_type) {
     flags <- "t"
   } else {
     flags <- NULL
   }
-  execGRASS("g.list", parameters = list(type = type), flags = flags, intern = T)
+  execGRASS("g.list", parameters = list(type = type), flags = flags, intern = TRUE)
 }
 
 get_att_table <- function(map, cla_col = "class", lab_col = "label") {
-  raw <- execGRASS("db.select", sql = paste0("select distinct ", cla_col, ",", lab_col, " from ", map), intern = T)
-  table <- read.csv(text = raw, header = T, stringsAsFactors = F, sep = "|")
-  return(table)
+  raw <- execGRASS("db.select", sql = paste0("select distinct ", cla_col, ",", lab_col, " from ", map), intern = TRUE)
+  table <- read.csv(text = raw, header = TRUE, stringsAsFactors = FALSE, sep = "|")
+  table
 }
 
 #' Parse scaling up coefficient options
@@ -325,7 +332,7 @@ amParseOptions <- function(opt, sepItem = ";", sepAssign = "=") {
       }
     }
   }
-  return(optList)
+  optList
 }
 
 
@@ -382,9 +389,9 @@ amBridgeFinder <- function(fromMap, toMap, bridgeMap) {
   stat <- execGRASS("r.univar",
     map = bridgeMap,
     flags = "t",
-    intern = T
-  ) %>%
-    read.table(text = ., sep = "|", header = T, stringsAsFactors = F, nrows = 1)
+    intern = TRUE
+  ) |>
+    read.table(text = _, sep = "|", header = TRUE, stringsAsFactors = FALSE, nrows = 1)
 
   nBridges <- stat[1, "non_null_cells"]
   print(paste("Found", nBridges, "bridges"))
@@ -393,7 +400,7 @@ amBridgeFinder <- function(fromMap, toMap, bridgeMap) {
 # remove cell defined in bridgeMap from removeFromMap.
 amBridgeRemover <- function(bridgeMap, removeFromMap) {
   tmpRules <- tempfile()
-  write(execGRASS("r.category", map = removeFromMap, intern = T), tmpRules)
+  write(execGRASS("r.category", map = removeFromMap, intern = TRUE), tmpRules)
   expr <- paste0(removeFromMap, "=if(!isnull(", bridgeMap, "),null(),", removeFromMap, ")")
   execGRASS("r.mapcalc", expression = expr, flags = "overwrite")
   execGRASS("r.category", map = removeFromMap, rules = tmpRules)
@@ -429,7 +436,7 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
   # Strategy :
   # Using smallest subset OR if all selected, don't extract
 
-  if (grepl("-", select_col) | grepl("^_", select_col)) {
+  if (grepl("-", select_col) || grepl("^_", select_col)) {
     select_col <- sub("-", "_", select_col)
     select_col <- sub("^_", "x", select_col)
     print(paste("Reformatted subset column name to", select_col))
@@ -485,7 +492,7 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
     )
   }
 
-  return(inputHfFinal)
+  inputHfFinal
 }
 
 
@@ -497,11 +504,10 @@ sysEvalFreeMbDisk <- function() {
   #                                                  * - > $4
   # Filesystem           1M-blocks      Used Available Use% Mounted on
   # overlay                 120695    117784         0 100% /
-  free <- system("df -BM $GISDBASE | tail -n1 | awk '{print $4}'", intern = T)
+  free <- system("df -BM $GISDBASE | tail -n1 | awk '{print $4}'", intern = TRUE)
   free <- gsub("\\D+", "", free)
-  return(as.integer(free))
+  as.integer(free)
 }
-
 
 
 #' Evalutate memory available. This is experimental
@@ -512,24 +518,27 @@ sysEvalFreeMbMem <- function() {
 
   switch(sys,
     "Darwin" = {
-      memTot <- as.integer(system("sysctl hw.memsize | awk '{ print $2 / (2^10)^2}'", intern = T))
-      memActive <- as.integer(system("vm_stat | awk '/^Pages active/ { print ($3 * 4096) / (2^10)^2}'", intern = T))
-      memFree <- as.integer(system("vm_stat | awk '/^Pages free/ { print ($3 * 4096) / (2^10)^2}'", intern = T))
-      memPurgeable <- as.integer(system("vm_stat | awk '/^Pages purgeable/ { print ($3 * 4096) / (2^10)^2}'", intern = T))
+      memTot <- as.integer(system("sysctl hw.memsize | awk '{ print $2 / (2^10)^2}'", intern = TRUE))
+      memActive <- as.integer(system("vm_stat | awk '/^Pages active/ { print ($3 * 4096) / (2^10)^2}'", intern = TRUE))
+      memFree <- as.integer(system("vm_stat | awk '/^Pages free/ { print ($3 * 4096) / (2^10)^2}'", intern = TRUE))
+      memPurgeable <- as.integer(system(
+        "vm_stat | awk '/^Pages purgeable/ { print ($3 * 4096) / (2^10)^2}'",
+        intern = TRUE
+      ))
 
       free <- memTot - memActive
     },
     "Linux" = {
-      memTot <- as.integer(system("cat /proc/meminfo | awk '/^MemTotal:/ {print $2/ (2^10)}'", intern = T))
-      memActive <- as.integer(system("cat /proc/meminfo | awk '/^Active:/ {print $2/ (2^10)}'", intern = T))
-      memFree <- as.integer(system("cat /proc/meminfo | awk '/^MemFree:/ {print $2/ (2^10)}'", intern = T))
-      memCached <- as.integer(system("cat /proc/meminfo | awk '/^Cached:/ {print $2/(2^10)}'", intern = T))
+      memTot <- as.integer(system("cat /proc/meminfo | awk '/^MemTotal:/ {print $2/ (2^10)}'", intern = TRUE))
+      memActive <- as.integer(system("cat /proc/meminfo | awk '/^Active:/ {print $2/ (2^10)}'", intern = TRUE))
+      memFree <- as.integer(system("cat /proc/meminfo | awk '/^MemFree:/ {print $2/ (2^10)}'", intern = TRUE))
+      memCached <- as.integer(system("cat /proc/meminfo | awk '/^Cached:/ {print $2/(2^10)}'", intern = TRUE))
 
       free <- memTot - memActive
     }
   )
 
-  return(as.integer(free))
+  as.integer(free)
 }
 
 #' Reset AccessMod region
@@ -582,14 +591,14 @@ amIsotropicTravelTime <- function(
   ratioMemory = 1,
   memory = NULL, # if set, absolute max memory
   rawMode = FALSE,
-  knights_move = F
+  knights_move = FALSE
 ) {
   vInfo <- amParseOptions(
     execGRASS(
       "v.info",
       flags = c("t"),
       map = inputHf,
-      intern = T
+      intern = TRUE
     )
   )
 
@@ -664,7 +673,7 @@ amIsotropicTravelTime <- function(
       testSysLimit <- execGRASS("r.cost",
         parameters = amParam,
         flags = c("i", "overwrite"),
-        intern = T
+        intern = TRUE
       )
       # Sample output
       # [1] "Will need at least 1.02 MB of disk space"
@@ -717,7 +726,8 @@ amIsotropicTravelTime <- function(
   #   amMsg(
   #     type = "log",
   #     text = sprintf(
-  #       "Memory required for r.cost = %1$s MB. Memory available = %2$s MB. Disk space required = %3$s MB. Disk space available = %4$s MB",
+  #       "Memory required for r.cost = %1$s MB. Memory available = %2$s MB.
+  #        Disk space required = %3$s MB. Disk space available = %4$s MB",
   #       memRequire,
   #       free,
   #       diskRequire,
@@ -771,16 +781,14 @@ amIsotropicTravelTime <- function(
       )
     }
   } else {
-    return(
-      list(
-        required = list(
-          memory = memRequire,
-          disk = diskRequire
-        ),
-        available = list(
-          memory = free,
-          disk = disk
-        )
+    list(
+      required = list(
+        memory = memRequire,
+        disk = diskRequire
+      ),
+      available = list(
+        memory = free,
+        disk = disk
       )
     )
   }
@@ -806,7 +814,7 @@ amAnisotropicTravelTime <- function(
   ratioMemory = 1,
   memory = NULL, # if set, absolute max memory
   rawMode = FALSE, # skip minute conversion; skip value removal above maxTravelTime
-  knights_move = F
+  knights_move = FALSE
 ) {
   walk_fn <- "r.walk.accessmod"
   flags <- c("overwrite", "s")
@@ -849,7 +857,7 @@ amAnisotropicTravelTime <- function(
       "v.info",
       flags = c("t"),
       map = inputHf,
-      intern = T
+      intern = TRUE
     )
   )
 
@@ -908,7 +916,7 @@ amAnisotropicTravelTime <- function(
       testSysLimit <- execGRASS(walk_fn,
         parameters = amParam,
         flags = c("i", flags),
-        intern = T
+        intern = TRUE
       )
       # Sample output
       # [1] "Will need at least 1.02 MB of disk space"
@@ -961,7 +969,8 @@ amAnisotropicTravelTime <- function(
   #   amMsg(
   #     type = "log",
   #     text = sprintf(
-  #       "Memory required for r.walk.accessmod = %1$s MB. Memory available = %2$s MB. Disk space required = %3$s MB. Disk space available = %4$s MB",
+  #       "Memory required for r.walk.accessmod = %1$s MB. Memory available = %2$s MB.
+  #        Disk space required = %3$s MB. Disk space available = %4$s MB",
   #       memRequire,
   #       free,
   #       diskRequire,
@@ -1023,16 +1032,14 @@ amAnisotropicTravelTime <- function(
       )
     }
   } else {
-    return(
-      list(
-        required = list(
-          memory = memRequire,
-          disk = diskRequire
-        ),
-        available = list(
-          memory = free,
-          disk = disk
-        )
+    list(
+      required = list(
+        memory = memRequire,
+        disk = diskRequire
+      ),
+      available = list(
+        memory = free,
+        disk = disk
       )
     )
   }
@@ -1092,7 +1099,10 @@ amCleanTravelTime <- function(map,
   #
 
   cmd <- sprintf(
-    " %1$s = %1$s >= %2$d && %1$s <= %3$d ? round((( %1$s / %6$f) - (( %1$s / %6$f ) %% 1))) : %1$s / %6$d > %4$d ? %5$s : null() ",
+    paste0(
+      " %1$s = %1$s >= %2$d && %1$s <= %3$d ? round((( %1$s / %6$f) - (( %1$s / %6$f ) %% 1)))",
+      " : %1$s / %6$d > %4$d ? %5$s : null() "
+    ),
     map # 1
     , cutSecondsStart # 2
     , cutSecondsEnd # 3
@@ -1117,7 +1127,7 @@ amCreateSpeedMap <- function(tbl, mapMerged, mapSpeed) {
   # 1002 = 3080 \t MOTORIZED:80
   tbl[, "newClass"] <- integer()
   # for each row of the model table...
-  for (i in 1:nrow(tbl)) {
+  for (i in seq_len(nrow(tbl))) {
     # ... get the mode
     mod <- tbl[i, "mode"]
     # ... corrsponding to the predefined value listTranspMod + given speed
@@ -1172,7 +1182,7 @@ amCreateSpeedMap <- function(tbl, mapMerged, mapSpeed) {
     rules = tmpFile,
     flags = "overwrite"
   )
-  unlink("temp", recursive = T)
+  unlink("temp", recursive = TRUE)
 }
 
 amCreateFrictionMap <- function(tbl, mapMerged, mapFriction, mapResol) {
@@ -1187,7 +1197,7 @@ amCreateFrictionMap <- function(tbl, mapMerged, mapFriction, mapResol) {
 
 
   # for each row of the model table...
-  for (i in 1:nrow(tbl)) {
+  for (i in seq_len(nrow(tbl))) {
     # km/h to s/m
     # the time to cover one unit of distance * actual i
     # distance (map resolution) == cost to cross a given cell.
@@ -1243,7 +1253,7 @@ amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
     map = inputPoint,
     raster = inputRaster,
     flags = "p",
-    intern = T
+    intern = TRUE
   )
 
   if (isEmpty(data)) {
@@ -1256,14 +1266,14 @@ amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
       stringsAsFactors = FALSE,
       na.strings = "*",
       colClasses = c("character"),
-      fill = T
+      fill = TRUE
     )
     tbl
     tbl <- tbl[!is.na(as.numeric(tbl[[1]])) & !is.na(as.numeric(tbl[[2]])), ]
   }
 
   names(tbl) <- c("cat", "val")
-  return(tbl)
+  tbl
 }
 
 amGetFacilitiesTableWhatRast <- function(mapHf, mapRaster) {
@@ -1271,7 +1281,7 @@ amGetFacilitiesTableWhatRast <- function(mapHf, mapRaster) {
   tbl <- amGetRasterValueAtPoint(mapHf, mapRaster)
 
   amRegionReset()
-  return(tbl)
+  tbl
 }
 
 amRegionReset <- function() {
@@ -1346,7 +1356,7 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   #
   tbl <- merge(tbl, tblHf, by = "cat")
 
-  return(tbl)
+  tbl
 }
 
 #' Import temporary shapefile catchment to final directory
@@ -1364,7 +1374,7 @@ amMoveShp <- function(shpFile, outDir, outName) {
   if (length(shpFile) < 1) {
     return()
   }
-  outDir <- system(sprintf("echo %s", outDir), intern = T)
+  outDir <- system(sprintf("echo %s", outDir), intern = TRUE)
 
   fe <- file.exists(shpFile)
   de <- dir.exists(outDir)
@@ -1397,10 +1407,10 @@ amMoveShp <- function(shpFile, outDir, outName) {
     for (s in allShpFiles) {
       sExt <- file_ext(s)
       newPath <- file.path(outDir, paste0(outName, ".", sExt))
-      file.copy(s, newPath, overwrite = T)
+      file.copy(s, newPath, overwrite = TRUE)
     }
   }
-  return(all(ok))
+  all(ok)
 }
 
 debug_header <- function(text) {
@@ -1410,10 +1420,10 @@ debug_header <- function(text) {
 debug_raster_report <- function(map) {
   tryCatch(
     {
-      report <- execGRASS("r.report", map = map, units = c("k", "c", "p"), intern = T)
+      report <- execGRASS("r.report", map = map, units = c("k", "c", "p"), intern = TRUE)
       write.table(report,
         file = paste0(map, "_report.txt"),
-        row.names = F, quote = FALSE
+        row.names = FALSE, quote = FALSE
       )
     },
     error = function(cond) {
