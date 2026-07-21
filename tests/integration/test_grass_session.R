@@ -4,9 +4,14 @@ library(testthat)
 # We gate this test so it is harmlessly skipped in non-GRASS environments.
 skip_if(!nzchar(Sys.getenv("GISBASE")), "GRASS session not initialized (GISBASE not set)")
 
+# test_dir() sets wd to tests/integration/, but config.R uses relative
+# paths for dictionary/ — mirror the Docker WORKDIR (src/) before sourcing.
+owd <- setwd("../../src")
+on.exit(setwd(owd))
+
 # Initialize the session as the entrypoints do
-source("../../src/config.R")
-source("../../src/init_session.R")
+source("config.R")
+source("init_session.R")
 
 test_that("GRASS session is operational", {
   # These should return FALSE and not crash, proving the execGRASS wiring is intact.
