@@ -123,14 +123,14 @@ amGetTableFeaturesCount <- function(vect, types = c("areas", "lines", "points"))
 #' @return {data.frame}
 #' @export
 amCleanTableFromGrass <- function(text, sep = "|", header = TRUE, cols = NULL, ...) {
-  tbl <- amSubQuote(text) |>
-    read.table(
-      text = _,
-      sep = sep,
-      header = isTRUE(header),
-      stringsAsFactor = FALSE,
-      ...
-    )
+  clean <- amSubQuote(text)
+  tbl <- read.table(
+    text = clean,
+    sep = sep,
+    header = isTRUE(header),
+    stringsAsFactor = FALSE,
+    ...
+  )
 
   if (!isEmpty(cols)) {
     tbl <- tbl[cols]
@@ -275,8 +275,8 @@ is_loaded <- function(name, type = "all", overwrite = FALSE) {
   if (overwrite) {
     return(FALSE)
   }
-  available_data <- execGRASS("g.list", parameters = list(type = type), flags = "t", intern = TRUE) |>
-    read.csv(text = _, sep = "/", header = FALSE, col.names = c("type", "name"))
+  grass_list <- execGRASS("g.list", parameters = list(type = type), flags = "t", intern = TRUE)
+  available_data <- read.csv(text = grass_list, sep = "/", header = FALSE, col.names = c("type", "name"))
   is_avail <- name %in% available_data$name
   # this_type = available_data[available_data$name == name, "type"][[1]]
   # if (is_avail) print(paste0(this_type, " by name of ", name, " is already loaded"))
@@ -386,12 +386,12 @@ amBridgeFinder <- function(fromMap, toMap, bridgeMap) {
     ),
     flags = "overwrite"
   )
-  stat <- execGRASS("r.univar",
+  univar_out <- execGRASS("r.univar",
     map = bridgeMap,
     flags = "t",
     intern = TRUE
-  ) |>
-    read.table(text = _, sep = "|", header = TRUE, stringsAsFactors = FALSE, nrows = 1)
+  )
+  stat <- read.table(text = univar_out, sep = "|", header = TRUE, stringsAsFactors = FALSE, nrows = 1)
 
   nBridges <- stat[1, "non_null_cells"]
   print(paste("Found", nBridges, "bridges"))
