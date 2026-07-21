@@ -1,7 +1,6 @@
 rgrass
 tools
 jsonlite
-magrittr
 optparse
 styler
 lintr
