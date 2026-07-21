@@ -3,6 +3,7 @@
 library(testthat)
 
 test_dir("tests/testthat", reporter = "summary")
+test_dir("tests/integration", reporter = "summary")
 
 # Coverage report (covr installed in the env image; gracefully skipped otherwise)
 if (requireNamespace("covr", quietly = TRUE)) {

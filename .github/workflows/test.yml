@@ -1,0 +1,25 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main", "staging", "dev-*"]
+  pull_request:
+    branches: ["main", "staging"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: ghcr.io/virtue-foundation/vf-accessmod-cli_env:main
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python test dependencies
+        run: uv pip install --system pytest
+
+      - name: Run Python tests
+        working-directory: ${{ github.workspace }}
+        run: pytest
+
+      - name: Run R tests
+        working-directory: ${{ github.workspace }}
+        run: Rscript tests/run.R
