@@ -105,11 +105,8 @@ amCapacityAnalysis <- function(
     # order by given field value, take index field values
     #
 
-    orderResult <- tableFacilities[orderField] %>%
-      order(
-        decreasing = hfOrderSorting == "hfOrderDesc"
-      ) %>%
-      tableFacilities[., c(hfIdx, orderField)]
+    ord <- order(tableFacilities[orderField], decreasing = hfOrderSorting == "hfOrderDesc")
+    orderResult <- tableFacilities[ord, c(hfIdx, orderField)]
   } else {
     #
     # Do a pre analysis to sort hf with population coverage
@@ -402,8 +399,8 @@ amCapacityAnalysis <- function(
       flags  = c("g", "t", "overwrite"),
       map    = inputPop,
       zones  = "tmp_zone_admin",
-      intern = T
-    ) %>%
+      intern = TRUE
+    ) |>
       amCleanTableFromGrass(
         cols = c("zone", "label", "sum")
       )
@@ -413,8 +410,8 @@ amCapacityAnalysis <- function(
       flags  = c("g", "t", "overwrite"),
       map    = outputPopResidual,
       zones  = "tmp_zone_admin",
-      intern = T
-    ) %>%
+      intern = TRUE
+    ) |>
       amCleanTableFromGrass(
         cols = c("zone", "label", "sum")
       )
@@ -501,11 +498,11 @@ amCapacityAnalysis <- function(
   #   }
   # }
 
-  return(out)
+  out
 }
 
 popOnBarrierCheck <- function(r_pop, r_lcv) {
-  if (!is.null(r_pop) & !is.null(r_lcv)) {
+  if (!is.null(r_pop) && !is.null(r_lcv)) {
     tmpMapPop <- "tmp__test_pop_on_barrier"
     execGRASS("r.mask", flags = "i", raster = r_lcv)
     execGRASS("r.mapcalc",
@@ -517,8 +514,8 @@ popOnBarrierCheck <- function(r_pop, r_lcv) {
     sumPop <- execGRASS("r.univar",
       map = tmpMapPop,
       flags = c("g", "t"),
-      intern = T
-    ) %>%
+      intern = TRUE
+    ) |>
       amCleanTableFromGrass(
         cols = c("non_null_cells", "sum")
       )
@@ -526,8 +523,8 @@ popOnBarrierCheck <- function(r_pop, r_lcv) {
     origPop <- execGRASS("r.univar",
       map = r_pop,
       flags = c("g", "t"),
-      intern = T
-    ) %>%
+      intern = TRUE
+    ) |>
       amCleanTableFromGrass(
         cols = c("sum")
       )
@@ -541,12 +538,13 @@ popOnBarrierCheck <- function(r_pop, r_lcv) {
     )
   }
   #   }
-  return(list())
+  list()
 }
 
 #' Initialize output residual population layer
 #'
-#' Create the residual population layer (outputPopResidual) where friction layer is greated than 0 (remove population on barrier).
+#' Create the residual population layer (outputPopResidual) where friction
+#' layer is greated than 0 (remove population on barrier).
 #'
 #' @param inputPopResidual Raster layer of initial residual population
 #' @param inputFriction Raster layer of speed (or friction)
@@ -642,9 +640,13 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
 
 
 #' Compute catchment from a table of cumulated population by cumulated cost map
-#' @param inputTablePopByZone Table containing at least zone, sum, and cumSum columns from an zonal analysis between an isotropic or anisotropic cumulative cost layer (travel time) and a population layer.
+#' @param inputTablePopByZone Table containing at least zone, sum, and cumSum
+#'   columns from an zonal analysis between an isotropic or anisotropic
+#'   cumulative cost layer (travel time) and a population layer.
 #' @param inputMapPopInit Name of the layer containing the original population
-#' @param inputMapPopResidual Name of the layer containing the residual population (could be the original population but this layer will be modified)
+#' @param inputMapPopResidual Name of the layer containing the residual
+#'   population (could be the original population but this layer will be
+#'   modified)
 #' @param inputMapTravelTime Name of the layer containing the travel time
 #' @param outputCatchment Name of the layer for the output vector catchment
 #' @param facilityId Id of the facility analysed
@@ -655,12 +657,15 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
 #' @param facilityCapacityField Name of the column containint capacities
 #' @param facilityLabel (optional) Label describing the capacity
 #' @param facilityLabelField (optional) Name of the column for the label describing the capacity
-#' @param iterationNumber Number (integer) of the iteration currently processed. Is used to determine if the shapefile in output should be overwrite or if we append the geometry to it
+#' @param iterationNumber Number (integer) of the iteration currently processed.
+#'   Is used to determine if the shapefile in output should be overwrite or if
+#'   we append the geometry to it
 #' @param maxTravelTime Maximum cost allowed
 #' @param ignoreCapacity Ignore capacity, use maximum population.
 #' @param removeCapted Should this analysis remove capted population ?
 #' @param vectCatch Should this analysis create a shapefile as output ?
-#' @return A named list Containing the capacity analysis (amCapacityTable), the path to the shapefile (amCatchmentFilePath) and a message (msg).
+#' @return A named list Containing the capacity analysis (amCapacityTable),
+#'   the path to the shapefile (amCatchmentFilePath) and a message (msg).
 #' @export
 amCatchmentAnalyst <- function(
   inputTablePopByZone = NULL,
@@ -821,7 +826,7 @@ amCatchmentAnalyst <- function(
     #
     # Last iso band where pop is lower or equal the capacity
     #
-    pbzIn <- pbz[pbz$cumSum <= facilityCapacity, ] %>% tail(1)
+    pbzIn <- pbz[pbz$cumSum <= facilityCapacity, ] |> tail(1)
     if (isEmpty(pbzIn)) {
       #
       # Capacity is lower than pop in first zone
@@ -838,7 +843,7 @@ amCatchmentAnalyst <- function(
     #
     # First iso bad where pop is greater than the capacity
     #
-    pbzOut <- pbz[pbz$cumSum > facilityCapacity, ] %>% head(1)
+    pbzOut <- pbz[pbz$cumSum > facilityCapacity, ] |> head(1)
     popOuter <- pbzOut$cumSum
     popOuterBand <- pbzOut$sum
     zoneOuter <- pbzOut$zone
@@ -1132,8 +1137,8 @@ amGetRasterStatZonal <- function(mapValues, mapZones) {
     flags  = c("g", "t", "overwrite"),
     map    = mapValues,
     zones  = mapZones,
-    intern = T
-  ) %>%
+    intern = TRUE
+  ) |>
     amCleanTableFromGrass()
 
   #
@@ -1161,8 +1166,8 @@ amRasterMeta <- function(raster = NULL) {
   tblMeta <- execGRASS("r.info",
     map = raster,
     flags = "g",
-    intern = T
-  ) %>%
+    intern = TRUE
+  ) |>
     amCleanTableFromGrass(
       sep = "=",
       header = FALSE,
@@ -1170,7 +1175,7 @@ amRasterMeta <- function(raster = NULL) {
     )
   out <- tblMeta$value
   names(out) <- tblMeta$name
-  return(out)
+  out
 }
 
 #' amGetRasterStat
@@ -1178,11 +1183,20 @@ amRasterMeta <- function(raster = NULL) {
 #' Extract cells stat using r.univar
 #'
 #' @param rasterMap grass raster map name
-#' @param stats Stat to compute. Should be in c('n','cells','max','mean','stdev','coeff_var','null_cells','min','range','mean_of_abs','variance','sum','percentile')
+#' @param stats Stat to compute. Should be in c('n','cells','max','mean',
+#'   'stdev','coeff_var','null_cells','min','range','mean_of_abs','variance',
+#'   'sum','percentile')
 #' @param quantile Percentiles to extract
 #' @return cells stat
 #' @export
-amGetRasterStat <- function(rasterMap, metric = c("n", "cells", "max", "mean", "stddev", "coeff_var", "null_cells", "min", "range", "mean_of_abs", "variance", "sum", "percentile"), percentile = 99) {
+amGetRasterStat <- function(
+  rasterMap,
+  metric = c(
+    "n", "cells", "max", "mean", "stddev", "coeff_var", "null_cells",
+    "min", "range", "mean_of_abs", "variance", "sum", "percentile"
+  ),
+  percentile = 99
+) {
   # validation
   if (!amRastExists(rasterMap)) {
     return()
@@ -1192,15 +1206,18 @@ amGetRasterStat <- function(rasterMap, metric = c("n", "cells", "max", "mean", "
   metric <- match.arg(metric)
   # if quantiles use r.quantile
   if (isTRUE("percentile" %in% metric)) {
-    val <- amParseOptions(execGRASS("r.quantile", input = rasterMap, percentiles = percentile, intern = T), sepAssign = ":")
+    val <- amParseOptions(
+      execGRASS("r.quantile", input = rasterMap, percentiles = percentile, intern = TRUE),
+      sepAssign = ":"
+    )
   } else {
-    val <- amParseOptions(execGRASS("r.univar", map = rasterMap, flags = "g", intern = T))[[metric]]
+    val <- amParseOptions(execGRASS("r.univar", map = rasterMap, flags = "g", intern = TRUE))[[metric]]
   }
   val <- as.numeric(val)
 
   if (isTRUE(length(val) == 0 || isEmpty(val))) val <- 0L
 
-  return(val)
+  val
 }
 
 #' amRasterToShape
@@ -1316,7 +1333,7 @@ amRasterToShape <- function(
   }
 
   # rewrite
-  dbWriteTable(dbCon, tmpVectDissolve, dbRec, overwrite = T)
+  dbWriteTable(dbCon, tmpVectDissolve, dbRec, overwrite = TRUE)
 
   # export to shapefile.
   execGRASS("v.out.ogr",
@@ -1331,7 +1348,7 @@ amRasterToShape <- function(
   rmRastIfExists(tmpRaster)
   dbDisconnect(dbCon)
 
-  return(outPath)
+  outPath
 }
 
 
@@ -1355,9 +1372,8 @@ amMapsetGetDbCon <- function(mapset = NULL) {
     stop("dbCon not valid")
   }
 
-  return(dbCon)
+  dbCon
 }
-
 
 
 #' amMapPopOnBarrier

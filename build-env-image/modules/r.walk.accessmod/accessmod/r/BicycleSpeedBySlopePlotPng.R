@@ -1,10 +1,9 @@
-
 library(lattice)
 
 result <- data.frame(slope = -20:20)
 
 result$speed <- sapply(result$slope, function(x) {
-  s <- system(paste("node bicycleSpeed.js 30", x), intern = T)
+  s <- system(paste("node bicycleSpeed.js 30", x), intern = TRUE)
   as.numeric(s)
 })
 
