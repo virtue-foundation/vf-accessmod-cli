@@ -16,7 +16,7 @@ Guidance for agents working in `vf-accessmod-cli`. GUI-less, containerized port 
    - Sets all `AM5_*` / `GISBASE` / `GISDBASE` / `GRASS_*` env vars and exposes `grass` / `grass78`.
 2. **App image** — root `Dockerfile`, `FROM` the env image above. Copies `src/`, runs `flask run --host=0.0.0.0` from `/workspaces/vf-accessmod-cli/src`.
 
-CI (`.github/workflows/`): the env-image workflow fires on changes under `build-env-image/**`, `requirements_r.txt`, `pyproject.toml`, `uv.lock`. The app-image workflow fires on pushes to `main`/`staging`/`dev-*` and `v*.*.*` tags. If you change an R/Python dependency or the GRASS build, you must update the env image, not just the app image.
+CI (`.github/workflows/`): the env-image workflow runs manually (`workflow_dispatch`) or on pushes to `main` affecting `build-env-image/**`, `requirements_r.txt`, `pyproject.toml`, `uv.lock` — no PR trigger to avoid wasted compute. The app-image workflow fires on pushes to `main`/`staging`/`dev-*` and `v*.*.*` tags. If you change an R/Python dependency or the GRASS build, you must update the env image, not just the app image.
 
 ## Local dev
 

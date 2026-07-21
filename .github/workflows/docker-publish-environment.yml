@@ -6,14 +6,8 @@ name: Docker
 # documentation.
 
 on:
+  workflow_dispatch:
   push:
-    branches: ["main"]
-    paths:
-      - build-env-image/**
-      - requirements_r.txt
-      - pyproject.toml
-      - uv.lock
-  pull_request:
     branches: ["main"]
     paths:
       - build-env-image/**
