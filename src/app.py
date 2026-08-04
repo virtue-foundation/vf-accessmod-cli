@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import functools
 import os
 import subprocess
-from threading import Thread
+from threading import Lock, Thread
 
 from flask import Flask, flash, request, redirect, send_from_directory
 from werkzeug.utils import secure_filename
@@ -29,11 +29,20 @@ class JobRunner:
     }
 
     def _start_job(self, job):
+        """Atomically reserve a job. Raises if one is already running.
+
+        This is the authoritative guard: the test-and-set happens under
+        _job_lock so two concurrent requests can never both reserve a job
+        (single_job_only is only a fast-fail check).
+        """
         if job not in self._JOB_ENDPOINTS:
             raise ValueError("Unexpected job type")
-        self.last_endpoint = getattr(self, self._JOB_ENDPOINTS[job])
-        self.running = True
-        self.error = False
+        with _job_lock:
+            if self.running:
+                raise ValueError("Cannot start job until previous one is finished")
+            self.last_endpoint = getattr(self, self._JOB_ENDPOINTS[job])
+            self.running = True
+            self.error = False
 
     def status_json(self):
         return {
@@ -43,8 +52,7 @@ class JobRunner:
             "error": self.error,
         }
 
-    def tracked_subprocess(self, process, job):
-        self._start_job(job)
+    def tracked_subprocess(self, process):
         result = subprocess.run(process)
         if result.returncode != 0:
             self.error = True
@@ -54,9 +62,9 @@ class JobRunner:
 def _run_job_in_thread(job, target, args):
     """Reserve the job synchronously, then run target in a thread.
 
-    Reserving before Thread.start() closes the race where two concurrent
-    requests both pass single_job_only before the thread sets running=True.
-    The wrapper guarantees running is cleared even if the job crashes.
+    _start_job reserves atomically before Thread.start(), so single_job_only
+    can't be raced by concurrent requests. The wrapper guarantees running is
+    cleared even if the job crashes.
     """
     job_runner._start_job(job)
 
@@ -69,10 +77,15 @@ def _run_job_in_thread(job, target, args):
             job_runner.running = False
 
     thread = Thread(target=run)
-    thread.start()
+    try:
+        thread.start()
+    except Exception:
+        job_runner.running = False
+        raise
     return thread
 
 
+_job_lock = Lock()
 job_runner = JobRunner()
 
 
@@ -173,7 +186,7 @@ def run_merge_landcover(
     if not skip_artifacts:
         process.append("--clean-bridges")
     _add_common_arguments(paths, process, region_string)
-    job_runner.tracked_subprocess(process, "landcover")
+    job_runner.tracked_subprocess(process)
 
 
 def run_accessibility_analysis(
@@ -190,7 +203,7 @@ def run_accessibility_analysis(
     _add_common_arguments(
         paths, process, region_string, output_dir=paths.path_analysis_output
     )
-    job_runner.tracked_subprocess(process, "accessibility")
+    job_runner.tracked_subprocess(process)
 
 
 def run_coverage_analysis(
@@ -221,7 +234,7 @@ def run_coverage_analysis(
     _add_common_arguments(
         paths, process, region_string, output_dir=paths.path_analysis_output
     )
-    job_runner.tracked_subprocess(process, "coverage")
+    job_runner.tracked_subprocess(process)
 
 
 @app.post(job_runner.landcover_endpoint)

@@ -57,9 +57,35 @@ class TestJobRunner:
         with mock.patch(
             "app.subprocess.run", return_value=mock.Mock(returncode=returncode)
         ):
-            jr.tracked_subprocess(["Rscript", "script.R"], "accessibility")
+            jr.tracked_subprocess(["Rscript", "script.R"])
         assert jr.error is expected_error
         assert not jr.running
+
+    def test_start_job_raises_when_already_running(self):
+        jr = JobRunner()
+        jr._start_job("landcover")
+        with pytest.raises(ValueError, match="Cannot start job"):
+            jr._start_job("coverage")
+
+    def test_concurrent_start_job_exactly_one_wins(self):
+        jr = JobRunner()
+        results = []
+        barrier = threading.Barrier(2)
+
+        def try_start():
+            barrier.wait(timeout=5)
+            try:
+                jr._start_job("landcover")
+                results.append("ok")
+            except ValueError:
+                results.append("busy")
+
+        threads = [threading.Thread(target=try_start) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5)
+        assert sorted(results) == ["busy", "ok"]
 
     def test_launch_job_reserves_running_before_thread_starts(self):
         started = threading.Event()
