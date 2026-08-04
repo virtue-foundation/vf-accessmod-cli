@@ -694,7 +694,7 @@ amCatchmentAnalyst <- function(
   # Check input before going further
   #
   if (!ignoreCapacity && isEmpty(facilityCapacity)) {
-    stop(sprintf(ams("analysis_catchment_error_capacity_not_valid"), facilityId))
+    stop(sprintf("The capacity of facility with id %s is not valid", facilityId))
   }
 
 
@@ -969,18 +969,15 @@ amCatchmentAnalyst <- function(
         )
       }
     } else {
-      amMsg(
-        type = "warning",
-        text = paste(
-          "amCatchmentAnalyst. Catchment type not found.",
-          "facilityId:", facilityId,
-          "facilityCapacity:", facilityCapacity,
-          "popInner:", popInner,
-          "popOuter:", popOuter,
-          "popTravelTimeMin:", popTravelTimeMin,
-          "popTravelTimeMax:", popTravelTimeMax
-        )
-      )
+      warning(paste(
+        "amCatchmentAnalyst. Catchment type not found.",
+        "facilityId:", facilityId,
+        "facilityCapacity:", facilityCapacity,
+        "popInner:", popInner,
+        "popOuter:", popOuter,
+        "popTravelTimeMin:", popTravelTimeMin,
+        "popTravelTimeMax:", popTravelTimeMax
+      ))
     }
 
     if (debug_print) print("################ CATCHMENT TYPE")
