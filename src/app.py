@@ -51,6 +51,28 @@ class JobRunner:
         self.running = False
 
 
+def _run_job_in_thread(job, target, args):
+    """Reserve the job synchronously, then run target in a thread.
+
+    Reserving before Thread.start() closes the race where two concurrent
+    requests both pass single_job_only before the thread sets running=True.
+    The wrapper guarantees running is cleared even if the job crashes.
+    """
+    job_runner._start_job(job)
+
+    def run():
+        try:
+            target(*args)
+        except Exception:
+            job_runner.error = True
+        finally:
+            job_runner.running = False
+
+    thread = Thread(target=run)
+    thread.start()
+    return thread
+
+
 job_runner = JobRunner()
 
 
@@ -211,7 +233,7 @@ def landcover_request():
     skip_lakes = request_data.get("skip_lakes", False)
     skip_artifacts = request_data.get("skip_artifacts", False)
     args = [region_string, skip_rivers, skip_lakes, skip_artifacts]
-    Thread(target=run_merge_landcover, args=args).start()
+    _run_job_in_thread("landcover", run_merge_landcover, args)
     return job_runner.status_json(), 202
 
 
@@ -224,7 +246,7 @@ def accssibility_request():
     knights_move = request_data.get("knights_move", False)
     anisotropic = request_data.get("anisotropic", True)
     args = [region_string, facilities_subset, knights_move, anisotropic]
-    Thread(target=run_accessibility_analysis, args=args).start()
+    _run_job_in_thread("accessibility", run_accessibility_analysis, args)
     return job_runner.status_json(), 202
 
 
@@ -248,7 +270,7 @@ def coverage_request():
         gadm_level,
         capacity_column,
     ]
-    Thread(target=run_coverage_analysis, args=args).start()
+    _run_job_in_thread("coverage", run_coverage_analysis, args)
     return job_runner.status_json(), 202
 
 

@@ -1,8 +1,9 @@
+import threading
 from unittest import mock
 
 import pytest
 
-from app import JobRunner, single_job_only, job_runner
+from app import JobRunner, _run_job_in_thread, single_job_only, job_runner
 
 
 class TestJobRunner:
@@ -58,6 +59,34 @@ class TestJobRunner:
         ):
             jr.tracked_subprocess(["Rscript", "script.R"], "accessibility")
         assert jr.error is expected_error
+        assert not jr.running
+
+    def test_launch_job_reserves_running_before_thread_starts(self):
+        started = threading.Event()
+        release = threading.Event()
+
+        def slow_job():
+            started.set()
+            release.wait(5)
+
+        with mock.patch("app.job_runner", JobRunner()) as jr:
+            thread = _run_job_in_thread("landcover", slow_job, ())
+            # Reserved synchronously: running is True before the thread body runs.
+            assert jr.running
+            assert started.wait(5)
+            assert jr.running
+            release.set()
+            thread.join(timeout=5)
+            assert not jr.running
+
+    def test_launch_job_clears_running_and_sets_error_on_exception(self):
+        def boom():
+            raise RuntimeError("job crashed")
+
+        with mock.patch("app.job_runner", JobRunner()) as jr:
+            thread = _run_job_in_thread("landcover", boom, ())
+            thread.join(timeout=5)
+        assert jr.error
         assert not jr.running
 
 
