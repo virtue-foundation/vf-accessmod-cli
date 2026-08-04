@@ -602,26 +602,8 @@ amIsotropicTravelTime <- function(
     )
   )
 
-  vHasLines <- as.numeric(vInfo$lines) > 0
-  tmpStart <- NULL
-  if (vHasLines) {
-    tmpStart <- amRandomName("tmp__raster_start")
-    on_exit_add({
-      rmRastIfExists(tmpStart)
-    })
-    suppressWarnings({
-      execGRASS(
-        "v.to.rast",
-        input = inputHf,
-        output = tmpStart,
-        use = "val",
-        value = 1
-      )
-    })
-    inputRaster <- tmpStart
-    inputHf <- NULL
-  } else {
-    inputRaster <- NULL
+  if (as.numeric(vInfo$lines) > 0) {
+    stop("Health facilities must be a point vector; found line geometry")
   }
 
   # default memory allocation
@@ -655,7 +637,6 @@ amIsotropicTravelTime <- function(
     output = outputTravelTime,
     nearest = outputNearest,
     start_points = inputHf,
-    start_raster = inputRaster,
     start_coordinates = inputCoord,
     stop_points = inputStop,
     outdir = outputDir,
@@ -861,28 +842,8 @@ amAnisotropicTravelTime <- function(
     )
   )
 
-  vHasLines <- as.numeric(vInfo$lines) > 0
-
-  tmpStart <- NULL
-
-  if (vHasLines) {
-    tmpStart <- amRandomName("tmp__raster_start")
-    on_exit_add({
-      rmRastIfExists(tmpStart)
-    })
-    suppressWarnings({
-      execGRASS(
-        "v.to.rast",
-        input = inputHf,
-        output = tmpStart,
-        use = "val",
-        value = 1
-      )
-    })
-    inputRaster <- tmpStart
-    inputHf <- NULL
-  } else {
-    inputRaster <- NULL
+  if (as.numeric(vInfo$lines) > 0) {
+    stop("Health facilities must be a point vector; found line geometry")
   }
 
   #
@@ -898,7 +859,6 @@ amAnisotropicTravelTime <- function(
     output = outputTravelTime,
     nearest = outputNearest,
     start_points = inputHf,
-    start_raster = inputRaster,
     start_coordinates = inputCoord,
     stop_points = inputStop,
     outdir = outputDir,
