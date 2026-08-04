@@ -545,12 +545,12 @@ sysEvalFreeMbMem <- function() {
 #' @param {Character} rasters Rasters to set the region
 #' @param {Character} vectors vectors to set the region
 amRegionSet <- function(rasters = character(0), vectors = character(0)) {
-  hasRasters <- !amRastExists(rasters)
-  hasVectors <- !amVectExists(vectors)
+  hasRasters <- amRastExists(rasters)
+  hasVectors <- amVectExists(vectors)
 
   if (!hasRasters && !hasVectors) {
-    warnings("amRegionSet : no layer available to update region")
-    return
+    warning("amRegionSet: no layer available to update region")
+    return()
   }
   print("Setting region using the following:")
   print(rasters)
