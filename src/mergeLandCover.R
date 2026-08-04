@@ -163,7 +163,7 @@ if (path_barrier != "null") {
   if (is_loaded("v_barrier")) {
     print("Linear barrier vector file is already loaded")
   } else {
-    import_layer(path = path_barrier, layer = "v_barrier", type = "vector", ignore_proj = TRUE)
+    import_layer(path = path_barrier, layer_name = "v_barrier", type = "vector", ignore_proj = TRUE)
 
     if (debug_store) {
       v_barrier <<- read_VECT("v_barrier")
@@ -207,7 +207,7 @@ if (path_barrier_poly != "null") {
   if (is_loaded("v_barrier_poly")) {
     print("Area barrier vector file is already loaded")
   } else {
-    import_layer(path = path_barrier_poly, layer = "v_barrier_poly", type = "vector", ignore_proj = TRUE)
+    import_layer(path = path_barrier_poly, layer_name = "v_barrier_poly", type = "vector", ignore_proj = TRUE)
     if (debug_store) {
       v_barrier_poly <<- read_VECT("v_barrier_poly")
     }
@@ -266,7 +266,7 @@ if (length(barrier_stack) > 1) {
 # Import
 
 if (!is_loaded("v_road")) {
-  import_layer(path = path_road, layer = "v_road", type = "vector", ignore_proj = TRUE)
+  import_layer(path = path_road, layer_name = "v_road", type = "vector", ignore_proj = TRUE)
 }
 
 if (debug_store) {
