@@ -342,7 +342,6 @@ maxTravelTime <- input_max_time
 maxTravelTimeOrder <- 120
 dirAnalysis <- "toHF"
 typeAnalysis <- input_analysis_type
-useMaxSpeedMask <- FALSE
 keepFullHfTable <- FALSE
 # logic
 # return path = towards facilities.
@@ -382,7 +381,6 @@ args <- list(
   radius = 5000,
   maxTravelTime = maxTravelTime,
   maxTravelTimeOrder = maxTravelTimeOrder,
-  useMaxSpeedMask = useMaxSpeedMask,
   hfIdx = hfIdx,
   nameField = hfLab,
   capField = capField,

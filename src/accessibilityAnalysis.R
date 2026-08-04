@@ -240,7 +240,7 @@ args_traveltime <- switch(analysis_type,
     inputFriction = "r_friction", inputHf = inputHfFinal, inputStop = NULL,
     inputCoord = NULL, outputDir = NULL,
     outputTravelTime = "r_traveltime",
-    outputNearest = NULL, maxTravelTime = max_time, maxSpeed = 0, minTravelTime = NULL,
+    outputNearest = NULL, maxTravelTime = max_time, minTravelTime = NULL,
     timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1, memory = NULL,
     rawMode = FALSE, knights_move = knights_move
   ),
@@ -249,7 +249,7 @@ args_traveltime <- switch(analysis_type,
     inputCoord = NULL, outputDir = NULL,
     outputTravelTime = "r_traveltime",
     outputNearest = NULL, towardsFacilities = TRUE, maxTravelTime = max_time, minTravelTime = NULL,
-    maxSpeed = 0, timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1,
+    timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1,
     memory = NULL, rawMode = FALSE, knights_move = knights_move
   )
 )

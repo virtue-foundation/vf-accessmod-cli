@@ -584,7 +584,6 @@ amIsotropicTravelTime <- function(
   outputTravelTime = NULL,
   outputNearest = NULL,
   maxTravelTime = 0,
-  maxSpeed = 0,
   minTravelTime = NULL,
   timeoutValue = -1L,
   getMemDiskRequirement = FALSE,
@@ -718,17 +717,6 @@ amIsotropicTravelTime <- function(
   # }
 
   if (!getMemDiskRequirement) {
-    if (maxSpeed > 0 && maxTravelTime > 0) {
-      on_exit_add({
-        amSpeedBufferRegionRestore()
-      })
-      amSpeedBufferRegionInit(
-        c(inputHf, inputStop),
-        maxSpeed / 3.6,
-        maxTravelTime * 60
-      )
-    }
-
     #
     # Remove stops if not on current region
     #
@@ -789,7 +777,6 @@ amAnisotropicTravelTime <- function(
   towardsFacilities = FALSE,
   maxTravelTime = 0,
   minTravelTime = NULL,
-  maxSpeed = 0,
   timeoutValue = "null()",
   getMemDiskRequirement = FALSE,
   ratioMemory = 1,
@@ -940,25 +927,6 @@ amAnisotropicTravelTime <- function(
   # }
 
   if (!getMemDiskRequirement) {
-    if (maxSpeed > 0 && maxTravelTime > 0) {
-      on_exit_add({
-        amSpeedBufferRegionRestore()
-      })
-      if (towardsFacilities) {
-        amSpeedBufferRegionInit(
-          c(inputHf, inputStop),
-          maxSpeed / 3.6,
-          maxTravelTime * 60
-        )
-      } else {
-        amSpeedBufferRegionInit(
-          c(inputHf),
-          maxSpeed / 3.6,
-          maxTravelTime * 60
-        )
-      }
-    }
-
     #
     # Remove stops if not on current region
     #

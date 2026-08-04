@@ -25,7 +25,6 @@ amCapacityAnalysis <- function(
   typeAnalysis,
   towardsFacilities,
   maxTravelTime,
-  useMaxSpeedMask = FALSE,
   maxTravelTimeOrder = NULL,
   radius,
   hfIdx,
@@ -61,9 +60,6 @@ amCapacityAnalysis <- function(
 
   # Labels
   labelField <- "amLabel"
-
-  # Set maxSpeed
-  maxSpeed <- ifelse(isTRUE(useMaxSpeedMask), max(tableScenario$speed), 0)
 
   # # We would subset the table here, but it is already being subset prior to calling this fn
   # (Also this code is old and we should use amFacilitiesSubset())
@@ -124,7 +120,7 @@ amCapacityAnalysis <- function(
       outputFriction = outputFriction,
       outputPopResidual = "tmp_nested_p",
       outputHfCatchment = "tmp_nested_catch",
-      typeAnalysis = ifelse(hfOrder == "circBuffer", "circular", typeAnalysis),
+      typeAnalysis = typeAnalysis,
       towardsFacilities = towardsFacilities,
       radius = radius,
       maxTravelTime = maxTravelTimeOrder,
@@ -167,6 +163,7 @@ amCapacityAnalysis <- function(
       "amOrderValues_%s",
       amSubPunct(orderField)
     ),
+    # ponytail: circBuffer/travelTime arms are dead — hfOrder is hardcoded "tableOrder" in geoCoverageAnalysis.R
     "circBuffer" = sprintf(
       "amOrderValues_popDistance%sm",
       radius
@@ -275,7 +272,6 @@ amCapacityAnalysis <- function(
         outputTravelTime = tmpCost,
         towardsFacilities = towardsFacilities,
         maxTravelTime = maxTravelTime,
-        maxSpeed = maxSpeed,
         timeoutValue = "null()"
       ),
       "isotropic" = amIsotropicTravelTime(
@@ -283,13 +279,7 @@ amCapacityAnalysis <- function(
         inputHf = tmpHf,
         outputTravelTime = tmpCost,
         maxTravelTime = maxTravelTime,
-        maxSpeed = maxSpeed,
         timeoutValue = "null()"
-      ),
-      "circular" = amCircularTravelDistance(
-        inputHf          = tmpHf,
-        outputBuffer     = tmpCost,
-        radius           = radius
       )
     )
 
