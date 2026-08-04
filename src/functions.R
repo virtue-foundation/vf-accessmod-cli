@@ -444,8 +444,8 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
   is_valid_select_col <- select_col %in% names(tableFacilities)
   if (!is_valid_select_col) stop("Choose a valid subset column")
 
-  idHfAll <- tableFacilities[[config$vector_key]]
-  idHfSelect <- tableFacilities[tableFacilities[select_col] == 1, config$vector_key]
+  idHfAll <- tableFacilities[[config$vectorKey]]
+  idHfSelect <- tableFacilities[tableFacilities[select_col] == 1, config$vectorKey]
   fName <- amRandomName("tmp__")
   idHfNotSelect <- idHfAll[!idHfAll %in% idHfSelect]
   hasMoreSelect <- length(idHfNotSelect) < length(idHfSelect)
@@ -465,13 +465,13 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
     if (hasMoreSelect) {
       qSql <- sprintf(
         '"%s NOT IN (%s)"',
-        config$vector_key,
+        config$vectorKey,
         paste0("'", idHfNotSelect, "'", collapse = ",")
       )
     } else {
       qSql <- sprintf(
         '"%s IN (%s)"',
-        config$vector_key,
+        config$vectorKey,
         paste0("'", idHfSelect, "'", collapse = ",")
       )
     }

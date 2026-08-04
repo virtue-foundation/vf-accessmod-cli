@@ -24,7 +24,7 @@ config$dataClass <- fromJSON(config$pathClasses)
 # get a version grouped by class with class id as key
 config$dataClassList <- split(config$dataClass, config$dataClass$class)
 
-config$vector_key <- "cat"
+config$vectorKey <- "cat"
 
 config$listTranspMod <- list(
   WALKING = list(rastVal = 1000),

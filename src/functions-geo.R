@@ -47,8 +47,8 @@ amCapacityAnalysis <- function(
   #
 
   # if cat is set as index, change to cat_orig
-  if (hfIdx == config$vector_key) {
-    hfIdxNew <- paste0(config$vector_key, "_orig")
+  if (hfIdx == config$vectorKey) {
+    hfIdxNew <- paste0(config$vectorKey, "_orig")
   } else {
     hfIdxNew <- hfIdx
   }
