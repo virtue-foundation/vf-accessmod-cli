@@ -196,7 +196,7 @@ names(t_scenarios) <- c("class", "label", "speed", "mode")
 # Facilities on barrier (or speed 0)
 
 validated_hf <- amValidateFacilitiesTable(
-  tblHf = inputHfFinal, mapMerged = "r_lcv", mapDem = "r_dem", tblSpeed = scenario_table
+  tblHf = tableFacilities, mapHf = inputHfFinal, mapMerged = "r_merged_lcv", mapDem = "r_dem", tblSpeed = t_scenarios
 )
 if (any(validated_hf$amOnZero)) {
   stop("Some facilities are on zero-speed positions on the land cover, please check")
