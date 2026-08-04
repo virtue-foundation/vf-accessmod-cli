@@ -6,7 +6,7 @@ Guidance for agents working in `vf-accessmod-cli`. GUI-less, containerized port 
 
 - **Python Flask API** (`src/app.py`) that spawns **R scripts** as `Rscript` subprocesses. No JS frontend.
 - **R** scripts run inside a **GRASS GIS 7.8.7** session (`rgrass`), with a custom C module `r.walk.accessmod` and a patched `r.reclass`.
-- No `package.json`, no test suite, no linter/formatter/typecheck configured. Don't invent commands that don't exist.
+- No `package.json`, no linter/formatter/typecheck configured. Don't invent commands that don't exist.
 
 ## Two-image Docker architecture (don't confuse them)
 
@@ -21,6 +21,13 @@ CI (`.github/workflows/`): the env-image workflow runs manually (`workflow_dispa
 ## Local dev
 
 Run inside the env container (devcontainer uses the same env image); GRASS and R are not installable on a bare host without the full build. `config.R` initializes a GRASS session on load — it expects `GISBASE` / `GISDBASE` env vars to already be set (they are, in the env image).
+
+## Testing
+
+- **Python** (Flask app): `uv run pytest` from repo root. Tests in `tests/` (`test_allowed_file.py`, `test_file_path_handler.py`, `test_job_runner.py`). `tests/conftest.py` adds `src/` to `sys.path`.
+- **R unit tests** (pure helpers in `src/functions.R`): `Rscript -e 'library(testthat); test_dir("tests/testthat", reporter="summary")'` from repo root. These need no GRASS session. The full runner `Rscript tests/run.R` also runs `tests/integration/test_grass_session.R`, which **requires a live GRASS session** (env container only) and will abort on a bare host.
+- **R linters** (`style-files`, `lintr`) and `ruff` run via pre-commit hooks on commit.
+- The R entrypoints (`accessibilityAnalysis.R`, `geoCoverageAnalysis.R`, `mergeLandCover.R`) are **not** covered by unit tests — only integration-tested inside the GRASS container.
 
 ## App runtime conventions (`src/app.py`)
 
