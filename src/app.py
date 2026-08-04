@@ -46,7 +46,7 @@ class JobRunner:
     def tracked_subprocess(self, process, job):
         self._start_job(job)
         result = subprocess.run(process)
-        if result.returncode == 1:
+        if result.returncode != 0:
             self.error = True
         self.running = False
 

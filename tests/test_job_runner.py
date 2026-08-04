@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from app import JobRunner, single_job_only, job_runner
@@ -43,6 +45,20 @@ class TestJobRunner:
             "running": False,
             "error": False,
         }
+
+    @pytest.mark.parametrize(
+        "returncode,expected_error", [(0, False), (1, True), (137, True), (139, True)]
+    )
+    def test_tracked_subprocess_sets_error_on_nonzero_exit(
+        self, returncode, expected_error
+    ):
+        jr = JobRunner()
+        with mock.patch(
+            "app.subprocess.run", return_value=mock.Mock(returncode=returncode)
+        ):
+            jr.tracked_subprocess(["Rscript", "script.R"], "accessibility")
+        assert jr.error is expected_error
+        assert not jr.running
 
 
 class TestSingleJobOnly:
