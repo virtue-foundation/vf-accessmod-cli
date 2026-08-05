@@ -280,7 +280,7 @@ stack_class <- "rStackRoad"
 road_class_key <- "class"
 road_label_key <- "label"
 road_table <- get_att_table(map = "v_road", cla_col = "class", lab_col = "label")
-road_table <- arrange(road_table, desc(class))
+road_table <- road_table[order(road_table$class, decreasing = TRUE), ]
 tblN <- nrow(road_table)
 
 if (debug_print) print(road_table)
