@@ -438,8 +438,8 @@ if (all(is_loaded(raster_stack))) {
   # Cleaning bridge artefacts
   if (clean_bridges) {
     fromRoad <- raster_stack[grep("r_road", raster_stack)]
-    amBridgeFinder(fromRoad, merged_lcv_name, "bridge_layer")
-    amBridgeRemover("bridge_layer", removeFromMap = merged_lcv_name)
+    amBridgeFinder(fromRoad, merged_lcv_name, "tmp__bridge_layer")
+    amBridgeRemover("tmp__bridge_layer", removeFromMap = merged_lcv_name)
   }
 
   # set colors
