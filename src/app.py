@@ -53,6 +53,9 @@ class JobRunner:
         }
 
     def tracked_subprocess(self, process):
+        # No timeout: coverage analysis on large regions can run for a week of
+        # continuous processing. A static wall-clock cap would kill legitimate
+        # jobs; hang recovery is handled by container restart at the orchestrator.
         result = subprocess.run(process)
         if result.returncode != 0:
             self.error = True
