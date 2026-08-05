@@ -6,7 +6,7 @@ Guidance for agents working in `vf-accessmod-cli`. GUI-less, containerized port 
 
 - **Python Flask API** (`src/app.py`) that spawns **R scripts** as `Rscript` subprocesses. No JS frontend.
 - **R** scripts run inside a **GRASS GIS 7.8.7** session (`rgrass`), with a custom C module `r.walk.accessmod` and a patched `r.reclass`.
-- No `package.json`, no linter/formatter/typecheck configured. Don't invent commands that don't exist.
+- No `package.json`. Linters/formatters run via pre-commit hooks (`.pre-commit-config.yaml`): R `style-files` (styler) + `lintr`, Python `ruff` + `ruff-format`. They auto-fix in place; re-stage after hooks reformat. Don't invent commands that don't exist.
 
 ## Two-image Docker architecture (don't confuse them)
 
