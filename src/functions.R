@@ -162,7 +162,7 @@ amSubQuote <- function(txt) {
 
 #' Get data class info
 #' @param class Data class
-#' @param value Value to retrieve, by default, language specific class
+#' @param value Value to retrieve (e.g. "type", "colors")
 #' @export
 amClassListInfo <- function(class = NULL, value = NULL) {
   res <- character(0)
