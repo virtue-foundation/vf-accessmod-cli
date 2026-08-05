@@ -298,6 +298,7 @@ amCapacityAnalysis <- function(
       maxTravelTime = maxTravelTime,
       ignoreCapacity = ignoreCapacity,
       addColumnPopOrigTravelTime = addColumnPopOrigTravelTime,
+      debug_print = debug_print,
       iterationNumber = incN,
       removeCapted = removeCapted,
       vectCatch = vectCatch
@@ -637,7 +638,8 @@ amCatchmentAnalyst <- function(
   ignoreCapacity = FALSE,
   addColumnPopOrigTravelTime = FALSE,
   removeCapted = TRUE,
-  vectCatch = TRUE
+  vectCatch = TRUE,
+  debug_print = FALSE
 ) {
   #
   # Check input before going further
