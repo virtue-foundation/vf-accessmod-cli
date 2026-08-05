@@ -63,9 +63,12 @@ option_list <- list(
     type = "character", default = FALSE, action = "store_true",
     help = "Print diagnostic info to std-out", metavar = "character"
   ),
+  # Dev-only manual flag: never passed by app.py. When run interactively in an
+  # R/GRASS session, materializes each processed layer into the global env via
+  # `<<-` (e.g. r_lcv, v_barrier) so a developer can inspect them after the run.
   make_option("--debug-store",
     type = "character", default = FALSE, action = "store_true",
-    help = "Write GRASS objs into R session env", metavar = "character"
+    help = "Dev-only manual: load GRASS objs into R session env", metavar = "character"
   ),
   make_option("--clean-bridges",
     type = "character", default = FALSE, action = "store_true",
