@@ -874,7 +874,7 @@ amAnisotropicTravelTime <- function(
       )
     )
   }
-  #
+
   if (!getMemDiskRequirement) {
     #
     # Remove stops if not on current region
