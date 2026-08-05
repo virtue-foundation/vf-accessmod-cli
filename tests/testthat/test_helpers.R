@@ -228,3 +228,11 @@ test_that("amFacilitiesSubset errors when no facilities are selected", {
     "No facilities selected"
   )
 })
+
+# ---- amMissingOpts ----
+
+test_that("amMissingOpts reports only required options with NULL values", {
+  opt <- list(lcv = "path.tif", dem = NULL, name = NULL, output_dir = ".")
+  expect_identical(amMissingOpts(c("lcv", "dem", "name"), opt), c("dem", "name"))
+  expect_identical(amMissingOpts(c("lcv"), opt), character(0))
+})

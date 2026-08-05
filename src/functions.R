@@ -2,6 +2,14 @@ clean_filepath <- function(path) {
   gsub("\\\\", "/", path)
 }
 
+# Names of required options whose parsed value is NULL (i.e. not supplied on
+# the CLI). optparse::parse_args() always returns every defined option name,
+# so presence in names(opt) is not a valid missing-check; the value must be
+# tested instead.
+amMissingOpts <- function(required, opt) {
+  required[vapply(required, function(n) is.null(opt[[n]]), logical(1))]
+}
+
 amRastExists <- function(filter = "", mapset = NULL) {
   amLayerExists(filter, mapset, "raster")
 }

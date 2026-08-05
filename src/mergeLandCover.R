@@ -83,7 +83,7 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "roads", "b1")
-missing_inputs <- required_inputs[vapply(required_inputs, function(n) is.null(opt[[n]]), logical(1))]
+missing_inputs <- amMissingOpts(required_inputs, opt)
 .errCon <- open_startup_logs("merge_landcover")
 if (length(missing_inputs) > 0) {
   print("Check your input args")
