@@ -1,7 +1,8 @@
-from dataclasses import dataclass
 import functools
 import os
+import re
 import subprocess
+from dataclasses import dataclass
 from threading import Lock, Thread
 
 from flask import Flask, request, send_from_directory
@@ -19,6 +20,18 @@ class JobConflictError(ValueError):
 @app.errorhandler(JobConflictError)
 def _handle_job_conflict(_error):
     return {"error": JOB_CONFLICT_MSG}, 409
+
+
+_REGION_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
+
+
+class InvalidRegionStringError(ValueError):
+    """region_string is malformed; refuse to build paths from it."""
+
+
+@app.errorhandler(InvalidRegionStringError)
+def _handle_invalid_region_string(error):
+    return {"error": str(error)}, 400
 
 
 @dataclass
@@ -151,6 +164,8 @@ def _add_accessibility_arguments(
 
 class FilePathHandler:
     def __init__(self, region_string):
+        if not isinstance(region_string, str) or not _REGION_RE.match(region_string):
+            raise InvalidRegionStringError(f"Invalid region_string: {region_string!r}")
         self.region_string = region_string
         self.base_path = "/geodata"
         self.gadm_filename_prefix = "gadm41_"
