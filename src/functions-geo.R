@@ -449,37 +449,6 @@ amCapacityAnalysis <- function(
   )
 
 
-  # if (!preAnalysis) {
-  #   #
-  #   # Local db connection
-  #   #
-  #   dbCon <- amMapsetGetDbCon()
-  #   on_exit_add({
-  #     dbDisconnect(dbCon)
-  #   })
-  #
-  #   #
-  #   # Write summary table in db
-  #   #
-  #   dbWriteTable(
-  #     dbCon,
-  #     outputTableCapacity,
-  #     tblOut,
-  #     overwrite = T
-  #   )
-  #   #
-  #   # Write zonal stat table if exists
-  #   #
-  #   if (!is.null(tblPopByZone) && nrow(tblPopByZone) > 0) {
-  #     dbWriteTable(
-  #       dbCon,
-  #       outputTableZonal,
-  #       tblPopByZone,
-  #       overwrite = T
-  #     )
-  #   }
-  # }
-
   out
 }
 

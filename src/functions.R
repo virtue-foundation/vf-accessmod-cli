@@ -679,20 +679,6 @@ amIsotropicTravelTime <- function(
     )
   }
 
-  # if (!getMemDiskRequirement) {
-  #   amMsg(
-  #     type = "log",
-  #     text = sprintf(
-  #       "Memory required for r.cost = %1$s MB. Memory available = %2$s MB.
-  #        Disk space required = %3$s MB. Disk space available = %4$s MB",
-  #       memRequire,
-  #       free,
-  #       diskRequire,
-  #       disk
-  #     )
-  #   )
-  # }
-
   if (!getMemDiskRequirement) {
     #
     # Remove stops if not on current region
@@ -889,20 +875,6 @@ amAnisotropicTravelTime <- function(
     )
   }
   #
-  # if (!getMemDiskRequirement) {
-  #   amMsg(
-  #     type = "log",
-  #     text = sprintf(
-  #       "Memory required for r.walk.accessmod = %1$s MB. Memory available = %2$s MB.
-  #        Disk space required = %3$s MB. Disk space available = %4$s MB",
-  #       memRequire,
-  #       free,
-  #       diskRequire,
-  #       disk
-  #     )
-  #   )
-  # }
-
   if (!getMemDiskRequirement) {
     #
     # Remove stops if not on current region
