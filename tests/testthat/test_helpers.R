@@ -11,16 +11,13 @@ config <- list(
   vectorKey = "cat",
   dataClassList = list(
     "1" = list(
-      type = "raster", colors = "#000000", importable = TRUE, internal = FALSE,
-      en = "Raster layer"
+      type = "raster", colors = "#000000", importable = TRUE, internal = FALSE
     ),
     "2" = list(
-      type = "vector", colors = "#FFFFFF", importable = TRUE, internal = FALSE,
-      en = "Vector layer"
+      type = "vector", colors = "#FFFFFF", importable = TRUE, internal = FALSE
     )
   )
 )
-lang <- "en"
 
 # Source functions.R so its functions are available to tests.
 # When running under covr::file_coverage(), the source file is already
@@ -209,7 +206,7 @@ test_that("isEmpty delegates to amNoDataCheck", {
 # ---- amClassListInfo ----
 
 test_that("amClassListInfo retrieves class info", {
-  res <- amClassListInfo("1")
+  res <- amClassListInfo("1", "type")
   expect_true(length(res) > 0)
 })
 

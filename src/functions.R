@@ -165,20 +165,10 @@ amSubQuote <- function(txt) {
 #' @param value Value to retrieve, by default, language specific class
 #' @export
 amClassListInfo <- function(class = NULL, value = NULL) {
-  vals <- c("type", "colors", "importable", "internal")
-  # lang <- amTranslateGetSavedLanguage()
   res <- character(0)
   if (!is.null(class)) {
     for (i in class) {
-      if (is.null(value)) {
-        res <- c(res, config$dataClassList[[i]][[lang]])
-      } else {
-        # if (!value %in% vals) {
-        #   amDebugMsg(paste("value must be in ", paste(vals, collapse = ";")))
-        #   return()
-        # }
-        res <- c(res, config$dataClassList[[i]][[value]])
-      }
+      res <- c(res, config$dataClassList[[i]][[value]])
     }
     res
   }
