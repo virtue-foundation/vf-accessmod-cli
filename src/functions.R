@@ -999,13 +999,11 @@ amCleanTravelTime <- function(map,
   int16Max <- (2^16) / 2 - 1
   int32Max <- (2^32) / 2 - 1
   unlimitedMode <- maxTravelTime == 0
-  maxSeconds <- 0
   divider <- 1
   timeoutMinutesLimit <- 0
   timeoutMinutesValue <- timeoutValue
   cutSecondsStart <- 0
   cutSecondsEnd <- 0
-  hasTimeout <- FALSE
 
   if (convertToMinutes) {
     divider <- 60
