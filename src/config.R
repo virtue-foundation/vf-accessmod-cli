@@ -8,7 +8,6 @@ require(optparse)
 config <- list()
 
 config$gisBase <- Sys.getenv(x = "GISBASE")
-# setwd(dirname(dirname(parent.frame(2)$ofile)))
 config$GrassDataBase <- Sys.getenv(x = "GISDBASE")
 config$pathDictDir <- normalizePath("dictionary/")
 config$pathDictMain <- normalizePath(file.path(config$pathDictDir, "main.json"))
@@ -30,4 +29,3 @@ config$mapDem <- "r_dem"
 
 source("functions.R")
 print("Loaded all functions")
-# source("mergeLandCover.R")
