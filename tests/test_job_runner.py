@@ -3,7 +3,14 @@ from unittest import mock
 
 import pytest
 
-from app import JobRunner, _run_job_in_thread, single_job_only, job_runner
+from app import (
+    JobRunner,
+    JobConflictError,
+    _run_job_in_thread,
+    single_job_only,
+    job_runner,
+    app,
+)
 
 
 class TestJobRunner:
@@ -134,7 +141,26 @@ class TestSingleJobOnly:
             def dummy():
                 return 42
 
-            with pytest.raises(ValueError, match="Cannot start job"):
+            with pytest.raises(JobConflictError, match="Cannot start job"):
                 dummy()
         finally:
             job_runner.running = False
+
+
+class TestJobConflictHttpStatus:
+    def test_job_conflict_returns_409(self):
+        job_runner.running = True
+        try:
+            resp = app.test_client().post("/merge_landcover", json={})
+            assert resp.status_code == 409
+            assert resp.get_json() == {
+                "error": "Cannot start job until previous one is finished"
+            }
+        finally:
+            job_runner.running = False
+
+    def test_non_conflict_error_stays_500_not_409(self):
+        # A genuine handler error (missing region_string) must NOT be masked as 409.
+        job_runner.running = False
+        resp = app.test_client().post("/merge_landcover", json={})
+        assert resp.status_code == 500

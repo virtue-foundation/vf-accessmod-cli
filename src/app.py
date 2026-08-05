@@ -10,6 +10,15 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 
+class JobConflictError(ValueError):
+    """A job is already running and another was requested."""
+
+
+@app.errorhandler(JobConflictError)
+def _handle_job_conflict(_error):
+    return {"error": "Cannot start job until previous one is finished"}, 409
+
+
 @dataclass
 class JobRunner:
     check_endpoint = "/check"
@@ -39,7 +48,9 @@ class JobRunner:
             raise ValueError("Unexpected job type")
         with _job_lock:
             if self.running:
-                raise ValueError("Cannot start job until previous one is finished")
+                raise JobConflictError(
+                    "Cannot start job until previous one is finished"
+                )
             self.last_endpoint = getattr(self, self._JOB_ENDPOINTS[job])
             self.running = True
             self.error = False
@@ -107,7 +118,7 @@ def single_job_only(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if job_runner.running:
-            raise ValueError("Cannot start job until previous one is finished")
+            raise JobConflictError("Cannot start job until previous one is finished")
         return func(*args, **kwargs)
 
     return wrapper
