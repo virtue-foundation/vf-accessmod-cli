@@ -72,12 +72,18 @@ test_that("amSubPunct respects rm* flags", {
   expect_equal(amSubPunct("_hello_", rmDuplicateSep = FALSE, rmLeadingSep = TRUE, rmTrailingSep = TRUE), "hello")
 })
 
+test_that("amSubPunct replaces every punctuation/blank run", {
+  expect_equal(amSubPunct("a.b.c"), "a_b_c")
+  expect_equal(amSubPunct("a b c"), "a_b_c")
+  expect_equal(amSubPunct("a. -b"), "a_b")
+})
+
 test_that("amSubPunct with custom sep", {
   expect_equal(amSubPunct("hello.world", sep = "-"), "hello-world")
 })
 
 test_that("amSubPunct removes newlines without replacement", {
-  # sub("\n", "", ...) removes newlines, does not replace with sep
+  # gsub("\n", "", ...) removes newlines, does not replace with sep
   expect_equal(amSubPunct("hello\nworld"), "helloworld")
 })
 

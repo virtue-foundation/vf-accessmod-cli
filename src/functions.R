@@ -24,17 +24,16 @@ amSubPunct <- function(vect,
                        rmLeadingSep = TRUE,
                        rmDuplicateSep = TRUE,
                        debug = FALSE) {
-  # vect<-substr("'",'',iconv(vect, to='ASCII//TRANSLIT'))
-  res <- sub("[[:punct:]]+|[[:blank:]]+", sep, vect) # replace punctuation by sep
-  res <- sub("\n", "", res)
+  res <- gsub("[[:punct:]]+|[[:blank:]]+", sep, vect) # replace punctuation by sep
+  res <- gsub("\n", "", res)
   if (rmDuplicateSep) {
     if (nchar(sep) > 0) {
-      res <- sub(paste0("(\\", sep, ")+"), sep, res) # avoid duplicate
+      res <- gsub(paste0("(\\", sep, ")+"), sep, res) # avoid duplicate
     }
   }
   if (rmLeadingSep) {
     if (nchar(sep) > 0) {
-      res <- sub(paste0("^", sep), "", res) # remove trailing sep.
+      res <- sub(paste0("^", sep), "", res) # remove leading sep.
     }
   }
   if (rmTrailingSep) {
