@@ -736,7 +736,7 @@ amCatchmentAnalyst <- function(
   popResidualAfter <- as.numeric(NA)
 
   # population by zone is empty
-  isEmpty <- TRUE
+  pbzIsEmpty <- TRUE
 
   # If pop by zone is not given, extract it
   if (is.null(inputTablePopByZone)) {
@@ -776,7 +776,7 @@ amCatchmentAnalyst <- function(
   }
 
   # check if whe actually have zone
-  isEmpty <- isTRUE(nrow(pbz) == 0)
+  pbzIsEmpty <- isTRUE(nrow(pbz) == 0)
 
   # starting population
 
@@ -786,7 +786,7 @@ amCatchmentAnalyst <- function(
   #
   # get stat
   #
-  if (!isEmpty) {
+  if (!pbzIsEmpty) {
     # After cumulated sum, order was not changed, we can use tail/head to extract min max
     popTravelTimeMax <- tail(pbz, n = 1)$cumSum
     # popTravelTimeMin <- head(pbz,n=1)$cumSum
