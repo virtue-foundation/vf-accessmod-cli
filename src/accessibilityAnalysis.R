@@ -17,7 +17,6 @@
 
 ########################## TO-DO
 
-# TO-DO: INPUT VALIDATION: facilities on barrier
 # TO-DO: MAIN FUNCTION: check each arg, refactor?
 # TO-DO: OUTPUT REFACTOR: check which intermediate outputs are useful for geo coverage
 # TO-DO: OUTPUT: output directories
