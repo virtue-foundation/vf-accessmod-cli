@@ -270,7 +270,9 @@ def run_coverage_analysis(
 @single_job_only
 def landcover_request():
     request_data = request.get_json()
-    region_string = request_data["region_string"]
+    region_string = request_data.get("region_string")
+    if not region_string:
+        return {"error": "region_string is required"}, 400
     skip_rivers = request_data.get("skip_rivers", False)
     skip_lakes = request_data.get("skip_lakes", False)
     skip_artifacts = request_data.get("skip_artifacts", False)
@@ -283,7 +285,9 @@ def landcover_request():
 @single_job_only
 def accssibility_request():
     request_data = request.get_json()
-    region_string = request_data["region_string"]
+    region_string = request_data.get("region_string")
+    if not region_string:
+        return {"error": "region_string is required"}, 400
     facilities_subset = request_data.get("facilities_subset", None)
     knights_move = request_data.get("knights_move", False)
     anisotropic = request_data.get("anisotropic", True)
@@ -296,7 +300,9 @@ def accssibility_request():
 @single_job_only
 def coverage_request():
     request_data = request.get_json()
-    region_string = request_data["region_string"]
+    region_string = request_data.get("region_string")
+    if not region_string:
+        return {"error": "region_string is required"}, 400
     facilities_subset = request_data.get("facilities_subset", None)
     knights_move = request_data.get("knights_move", False)
     anisotropic = request_data.get("anisotropic", True)

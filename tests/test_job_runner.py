@@ -159,8 +159,9 @@ class TestJobConflictHttpStatus:
         finally:
             job_runner.running = False
 
-    def test_non_conflict_error_stays_500_not_409(self):
+    def test_non_conflict_error_is_not_409(self):
         # A genuine handler error (missing region_string) must NOT be masked as 409.
         job_runner.running = False
         resp = app.test_client().post("/merge_landcover", json={})
-        assert resp.status_code == 500
+        assert resp.status_code == 400
+        assert resp.get_json() == {"error": "region_string is required"}
