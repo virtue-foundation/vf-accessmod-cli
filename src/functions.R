@@ -44,33 +44,6 @@ amSubPunct <- function(vect,
   res
 }
 
-# Get category table for a previously imported raster
-amGetRasterCategory <- function(raster = NULL) {
-  if (isEmpty(raster)) stop("No raster map name provided")
-
-  tbl <- data.frame(integer(0), character(0))
-
-  tblText <- execGRASS("r.category",
-    map = raster,
-    intern = TRUE
-  )
-
-  # execGRASS returns a really awkward non-table thing, so we reformat it
-  if (!isEmpty(tblText)) {
-    tbl <- read.csv(
-      text = tblText,
-      sep = "\t",
-      header = FALSE,
-      stringsAsFactors = FALSE
-    )
-    if (ncol(tbl) == 2) {
-      tbl[, 1] <- as.integer(tbl[, 1])
-    }
-  }
-  names(tbl) <- c("class", "label")
-  tbl
-}
-
 #' Check for no data
 #' @param val Vector to check
 #' @export
