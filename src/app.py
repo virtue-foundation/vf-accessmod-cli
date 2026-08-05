@@ -257,7 +257,7 @@ def run_coverage_analysis(
     process.extend(["--max_time", str(max_travel_time)])
     if capacity_column:
         process.extend(["--f_capacity", capacity_column])
-    if gadm_level:
+    if gadm_level is not None:
         process.extend(["--admin", paths.get_gadm_path(gadm_level)])
         process.extend(["--zonal_column", paths.get_gadm_column(gadm_level)])
     _add_common_arguments(

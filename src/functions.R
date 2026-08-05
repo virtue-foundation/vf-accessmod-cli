@@ -1233,7 +1233,7 @@ amMoveGpkg <- function(vectFile, outDir, outName) {
   if (length(vectFile) < 1) {
     return()
   }
-  outDir <- system(sprintf("echo %s", outDir), intern = TRUE)
+  outDir <- path.expand(outDir)
 
   fe <- file.exists(vectFile)
   de <- dir.exists(outDir)
