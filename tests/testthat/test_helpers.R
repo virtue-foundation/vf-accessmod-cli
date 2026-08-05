@@ -135,15 +135,10 @@ test_that("amParseOptions supports custom separators", {
 
 # ---- amRandomName ----
 
-test_that("amRandomName produces a non-empty string", {
+test_that("amRandomName produces exactly n characters", {
   name <- amRandomName(n = 10)
-  expect_true(nchar(name) > 0)
+  expect_true(nchar(name) == 10)
 })
-
-# NB: amRandomName currently uses round(runif(n) * 24) which can
-# hit index 0 (~2%/pos), dropping a char.  The test above only
-# checks non-empty.  If exact n-char is needed, change to
-# sample(letters, n, replace = TRUE).
 
 test_that("amRandomName prepends prefix and appends suffix", {
   name <- amRandomName(prefix = "pre", suffix = "suf", n = 5)

@@ -427,7 +427,7 @@ amRandomName <- function(prefix = NULL, suffix = NULL, n = 20, cleanString = FAL
     prefix <- amSubPunct(prefix, "_")
     suffix <- amSubPunct(suffix, "_")
   }
-  rStr <- paste(letters[round(runif(n) * 24)], collapse = "")
+  rStr <- paste(sample(letters, n, replace = TRUE), collapse = "")
   str <- c(prefix, rStr, suffix)
   paste(str, collapse = collapse)
 }
