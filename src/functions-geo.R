@@ -18,7 +18,6 @@ amCapacityAnalysis <- function(
   outputPopBarrier,
   outputTableZonal,
   outputTableCapacity,
-  idHfOrderField,
   removeCapted = FALSE,
   vectCatch = FALSE,
   popOnBarrier = FALSE,
@@ -45,13 +44,6 @@ amCapacityAnalysis <- function(
   #
   # Set default
   #
-
-  # if cat is set as index, change to cat_orig
-  if (hfIdx == config$vectorKey) {
-    hfIdxNew <- paste0(config$vectorKey, "_orig")
-  } else {
-    hfIdxNew <- hfIdx
-  }
 
   orderResult <- data.frame(
     id = character(0),
@@ -676,9 +668,7 @@ amCatchmentAnalyst <- function(
   ignoreCapacity = FALSE,
   addColumnPopOrigTravelTime = FALSE,
   removeCapted = TRUE,
-  vectCatch = TRUE,
-  outdir,
-  language = config$language
+  vectCatch = TRUE
 ) {
   #
   # Check input before going further
