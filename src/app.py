@@ -274,7 +274,9 @@ def coverage_request():
     facilities_subset = request_data.get("facilities_subset", None)
     knights_move = request_data.get("knights_move", False)
     anisotropic = request_data.get("anisotropic", True)
-    max_travel_time = request_data.get("max_travel_time", 0)
+    max_travel_time = request_data.get("max_travel_time", None)
+    if max_travel_time is None:
+        return {"error": "max_travel_time is required"}, 400
     gadm_level = request_data.get("gadm_level", None)
     capacity_column = request_data.get("capacity_column", None)
     args = [
