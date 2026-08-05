@@ -41,7 +41,8 @@ Run inside the env container (devcontainer uses the same env image); GRASS and R
 
 - `accessibilityAnalysis.R`, `geoCoverageAnalysis.R`, `mergeLandCover.R` are the three entrypoints invoked by `app.py`. Each uses `optparse`; `app.py`'s `_add_common_arguments` / `_add_accessibility_arguments` build the CLI, so changing a flag requires updating **both** the R `make_option` list and the Python builder.
 - `--name` (region string), `--output_dir`, and `--debug_print` are added to every script by `_add_common_arguments`.
-- Shared helpers: `functions.R` (general), `functions-geo.R` (GRASS/geo), `functions_accessibility.R`. `config.R` holds all paths/classes and loads `dictionary/main.json` + `dictionary/classes.json` — edit dictionary JSON, not the R that reads it.
+- Shared helpers: `functions.R` (general, incl. the log helpers), `functions-geo.R` (GRASS/geo). `init_session.R` initializes the GRASS session and is sourced by each entrypoint **after** `config.R`. `config.R` holds all paths/classes and loads `dictionary/main.json` + `dictionary/classes.json` — edit dictionary JSON, not the R that reads it.
+- **Logging convention** (all three entrypoints, structurally identical): `open_startup_logs(name)` diverts stdout/stderr to `../logs/<name>_*.log` before validation; after the `--output_dir` is known, `migrate_to_run_logs(output_dir, .errCon)` reopens the sinks as `<output_dir>/output_log.txt` / `<output_dir>/error_log.txt`. Both helpers live in `functions.R`.
 
 ## Things that are easy to get wrong
 
