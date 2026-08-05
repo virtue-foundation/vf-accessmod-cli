@@ -221,16 +221,8 @@ import_layer <- function(path, type, layer_name, ignore_proj = FALSE, overwrite 
   # import parameters
   if (type == "raster") { # e.g., .tif
     import_parameters <- list(input = path, output = layer_name)
-  } else if (type == "vector") { # could be shapefile directory or .geojson
-    if (is_a_dir(path)) { # shapefile directory
-      filename <- get_shapefile_dir(path)
-      import_parameters <- list(
-        input = path, output = layer_name, layer = filename
-        # , snap=0.0001
-      )
-    } else { # probably geojson
-      import_parameters <- list(input = path, output = layer_name)
-    }
+  } else if (type == "vector") { # .geojson
+    import_parameters <- list(input = path, output = layer_name)
   }
 
   flags <- c()
@@ -253,10 +245,6 @@ is_loaded <- function(name, type = "all", overwrite = FALSE) {
   is_avail
 }
 
-is_a_dir <- function(path) {
-  file_ext(path) == ""
-}
-
 add_to_stack <- function(obj, stack = NULL, back = FALSE) {
   if (back) {
     new_stack <- c(stack, obj)
@@ -264,10 +252,6 @@ add_to_stack <- function(obj, stack = NULL, back = FALSE) {
     new_stack <- c(obj, stack)
   }
   new_stack
-}
-
-get_shapefile_dir <- function(path) {
-  file_path_sans_ext(list.files(path)[1])
 }
 
 # TO-DO: Could convert type/name notation into a df
@@ -1234,40 +1218,40 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   tbl
 }
 
-#' Import temporary shapefile catchment to final directory
-#' @param shpFile Full path to temp catchment file . eg. /tmp/super.shp
-#' @param outDir Directory path where are stored shapefile. eg. /home/am/data/shapefiles/
-#' @param outName Name of the final catchment shapefile, without extension. e.g. catchments_001
+#' Import temporary catchment vector to final directory
+#' @param vectFile Full path to temp catchment file. eg. /tmp/super.gpkg
+#' @param outDir Directory path where the output vector is stored.
+#' @param outName Name of the final catchment vector, without extension. e.g. catchments_001
 #' @return Boolean Done
-amMoveShp <- function(shpFile, outDir, outName) {
+amMoveGpkg <- function(vectFile, outDir, outName) {
   #
-  # Collect all shp related file and copy them to final directory.
+  # Collect all gpkg related files and copy them to final directory.
   # NOTE: make sure that:
-  # - pattern of shapefile is unique in its directory
+  # - pattern of vector is unique in its directory
 
   # in case of variable in path, convert outdir to fullpath
-  if (length(shpFile) < 1) {
+  if (length(vectFile) < 1) {
     return()
   }
   outDir <- system(sprintf("echo %s", outDir), intern = TRUE)
 
-  fe <- file.exists(shpFile)
+  fe <- file.exists(vectFile)
   de <- dir.exists(outDir)
-  so <- isTRUE(grep(".*\\.gpkg$", shpFile) > 0)
+  so <- grepl(".*\\.gpkg$", vectFile)
 
   if (!fe) {
     warning(
-      sprintf("amMoveShp: %s input file does not exists", shpFile)
+      sprintf("amMoveGpkg: %s input file does not exists", vectFile)
     )
   }
   if (!de) {
     warning(
-      sprintf("amMoveShp: %s output directory does not exists", outDir)
+      sprintf("amMoveGpkg: %s output directory does not exists", outDir)
     )
   }
   if (!so) {
     warning(
-      sprintf("amMoveShp: %s input file does not have .shp extension", shpFile)
+      sprintf("amMoveGpkg: %s input file does not have .gpkg extension", vectFile)
     )
   }
 
@@ -1275,11 +1259,11 @@ amMoveShp <- function(shpFile, outDir, outName) {
 
   if (all(ok)) {
     # base name file for pattern.
-    baseShape <- gsub(".gpkg", "", basename(shpFile))
-    # list files (we can also use )
-    allShpFiles <- list.files(dirname(shpFile), pattern = paste0("^", baseShape), full.names = TRUE)
-    # Copy each files in final catchment directory.
-    for (s in allShpFiles) {
+    baseShape <- gsub(".gpkg", "", basename(vectFile))
+    # list files matching the base name.
+    allVectFiles <- list.files(dirname(vectFile), pattern = paste0("^", baseShape), full.names = TRUE)
+    # Copy each file into the final catchment directory.
+    for (s in allVectFiles) {
       sExt <- file_ext(s)
       newPath <- file.path(outDir, paste0(outName, ".", sExt))
       file.copy(s, newPath, overwrite = TRUE)

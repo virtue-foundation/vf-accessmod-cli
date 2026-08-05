@@ -425,8 +425,8 @@ amCapacityAnalysis <- function(
     print("All the files in the temporary catchment vector dir")
     print(tmpVectCatchOut)
 
-    amMoveShp(
-      shpFile = tmpVectCatchOut,
+    amMoveGpkg(
+      vectFile = tmpVectCatchOut,
       outDir = outdir,
       outName = outputHfCatchment
     )
