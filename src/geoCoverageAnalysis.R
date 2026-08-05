@@ -117,7 +117,7 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "pop", "scenarios", "facilities")
-missing_inputs <- required_inputs[!required_inputs %in% names(opt)]
+missing_inputs <- required_inputs[vapply(required_inputs, function(n) is.null(opt[[n]]), logical(1))]
 .errCon <- open_startup_logs("geographic_coverage_analysis")
 if (length(missing_inputs) > 0) {
   print("Missing the following required file inputs, please check")
@@ -125,7 +125,7 @@ if (length(missing_inputs) > 0) {
   stop()
 }
 required_params <- c("name", "analysis_type", "f_order", "f_name")
-missing_params <- required_params[!required_params %in% names(opt)]
+missing_params <- required_params[vapply(required_params, function(n) is.null(opt[[n]]), logical(1))]
 if (length(missing_params) > 0) {
   print("Missing the following required parameters, please check")
   print(paste(missing_params, collapse = ", "))
