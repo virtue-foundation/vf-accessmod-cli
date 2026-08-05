@@ -85,6 +85,10 @@ opt <- parse_args(opt_parser)
 desired_inputs <- c("lcv", "roads", "b1", "b2", "help")
 missing_inputs <- setdiff(desired_inputs, names(opt))
 sink(paste0("../logs/", "merge_landcover.log"), append = FALSE, split = TRUE, type = "output")
+# sink(type="message") requires a connection (not a filename string) and only
+# one message diversion may be active at a time.
+.errCon <- file(paste0("../logs/", "merge_landcover_error.log"), open = "wt")
+sink(.errCon, type = "message")
 if (length(missing_inputs) > 0 && missing_inputs != "b2") {
   print("Check your input args")
   stop()

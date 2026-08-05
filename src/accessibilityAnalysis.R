@@ -91,6 +91,10 @@ opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "scenarios", "facilities", "name", "analysis_type")
 missing_inputs <- setdiff(required_inputs, names(opt))
 sink(paste0("../logs/", "accessibility_analysis.log"), append = FALSE, split = TRUE, type = "output")
+# sink(type="message") requires a connection (not a filename string) and only
+# one message diversion may be active at a time.
+.errCon <- file(paste0("../logs/", "accessibility_analysis_error.log"), open = "wt")
+sink(.errCon, type = "message")
 if (length(missing_inputs) > 0) {
   print("Check your input args")
   stop()
