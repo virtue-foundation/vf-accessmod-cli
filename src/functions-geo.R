@@ -748,8 +748,6 @@ amCatchmentAnalyst <- function(
     pbz <- inputTablePopByZone
   }
 
-  write.csv(pbz, "pbz.csv")
-
   #
   # Total pop under travel time with original population
   #
