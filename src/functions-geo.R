@@ -609,14 +609,14 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
 #' @param facilityLabel (optional) Label describing the capacity
 #' @param facilityLabelField (optional) Name of the column for the label describing the capacity
 #' @param iterationNumber Number (integer) of the iteration currently processed.
-#'   Is used to determine if the shapefile in output should be overwrite or if
+#'   Is used to determine if the vector in output should be overwrite or if
 #'   we append the geometry to it
 #' @param maxTravelTime Maximum cost allowed
 #' @param ignoreCapacity Ignore capacity, use maximum population.
 #' @param removeCapted Should this analysis remove capted population ?
-#' @param vectCatch Should this analysis create a shapefile as output ?
+#' @param vectCatch Should this analysis create a vector as output ?
 #' @return A named list Containing the capacity analysis (amCapacityTable),
-#'   the path to the shapefile (amCatchmentFilePath) and a message (msg).
+#'   the path to the vector (amCatchmentFilePath) and a message (msg).
 #' @export
 amCatchmentAnalyst <- function(
   inputTablePopByZone = NULL,
@@ -1166,17 +1166,17 @@ amGetRasterStat <- function(
 
 #' amRasterToShape
 #'
-#' Extract area from raster and create a shapefile or
+#' Extract area from raster and create a vector or
 #' append to it if the files already exist.
 #'
 #' @param idField Name of the facility id column.
 #' @param idPos String id currently processed.
 #' @param append Append to existing.
 #' @param inputRaster Raster to export
-#' @param outCatch Name of shapefile layer
+#' @param outCatch Name of vector layer
 #' @param listColumnsValue Alternative list of value to
 #'        put into catchment attributes. Must be a named list.
-#' @return Shapefile path
+#' @return Vector path
 #' @export
 amRasterToShape <- function(
   pathToCatchment,
@@ -1279,7 +1279,7 @@ amRasterToShape <- function(
   # rewrite
   dbWriteTable(dbCon, tmpVectDissolve, dbRec, overwrite = TRUE)
 
-  # export to shapefile.
+  # export to vector (GPKG).
   execGRASS("v.out.ogr",
     input = tmpVectDissolve,
     output = outPath,
