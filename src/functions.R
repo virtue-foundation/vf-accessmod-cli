@@ -1373,3 +1373,33 @@ amCleanupTmpLayers <- function() {
     unlink("temp", recursive = TRUE)
   }
 }
+
+# --- Log handling ----------------------------------------------------------
+# Each entrypoint opens a startup log in ../logs/ before validating inputs, then
+# migrates to per-run logs inside its output_dir once that path is known.
+# R constraints: a message sink needs a file() connection (not a filename
+# string), and only ONE message diversion may be active at a time -- so the
+# startup message sink is closed before the run-specific one opens. append=FALSE
+# truncates on open, so each run starts with a fresh log.
+
+open_startup_logs <- function(name) {
+  if (!dir.exists("../logs")) {
+    dir.create("../logs")
+  }
+  sink(paste0("../logs/", name, ".log"), append = FALSE, split = TRUE, type = "output")
+  .errCon <- file(paste0("../logs/", name, "_error.log"), open = "wt")
+  sink(.errCon, type = "message")
+  invisible(.errCon)
+}
+
+migrate_to_run_logs <- function(output_dir, .errCon) {
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir)
+  }
+  sink(paste0(output_dir, "/output_log.txt"), append = FALSE, split = TRUE, type = "output")
+  sink(type = "message")
+  close(.errCon)
+  .errCon <- file(paste0(output_dir, "/error_log.txt"), open = "wt")
+  sink(.errCon, type = "message")
+  invisible(.errCon)
+}

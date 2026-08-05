@@ -84,11 +84,7 @@ opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 desired_inputs <- c("lcv", "roads", "b1", "b2", "help")
 missing_inputs <- setdiff(desired_inputs, names(opt))
-sink(paste0("../logs/", "merge_landcover.log"), append = FALSE, split = TRUE, type = "output")
-# sink(type="message") requires a connection (not a filename string) and only
-# one message diversion may be active at a time.
-.errCon <- file(paste0("../logs/", "merge_landcover_error.log"), open = "wt")
-sink(.errCon, type = "message")
+.errCon <- open_startup_logs("merge_landcover")
 if (length(missing_inputs) > 0 && missing_inputs != "b2") {
   print("Check your input args")
   stop()
@@ -104,6 +100,7 @@ debug_print <- opt$`debug_print`
 debug_store <- opt$`debug-store`
 clean_bridges <- opt$`clean-bridges`
 output_dir <- clean_filepath(opt$output_dir)
+migrate_to_run_logs(output_dir, .errCon)
 
 if (debug_print) print("Arguments accepted. Setting projection")
 

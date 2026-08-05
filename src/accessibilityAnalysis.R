@@ -90,11 +90,7 @@ opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "scenarios", "facilities", "name", "analysis_type")
 missing_inputs <- setdiff(required_inputs, names(opt))
-sink(paste0("../logs/", "accessibility_analysis.log"), append = FALSE, split = TRUE, type = "output")
-# sink(type="message") requires a connection (not a filename string) and only
-# one message diversion may be active at a time.
-.errCon <- file(paste0("../logs/", "accessibility_analysis_error.log"), open = "wt")
-sink(.errCon, type = "message")
+.errCon <- open_startup_logs("accessibility_analysis")
 if (length(missing_inputs) > 0) {
   print("Check your input args")
   stop()
@@ -117,6 +113,7 @@ max_time <- opt$max_time
 facilities_subset <- opt$f_subset
 knights_move <- opt$knights_move
 output_dir <- clean_filepath(opt$output_dir)
+migrate_to_run_logs(output_dir, .errCon)
 debug_print <- opt$debug_print
 
 if (debug_print) print("Arguments accepted. Setting projection")
