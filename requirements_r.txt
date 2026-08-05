@@ -6,3 +6,4 @@ styler
 lintr
 testthat
 covr
+RSQLite

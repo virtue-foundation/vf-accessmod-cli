@@ -17,7 +17,6 @@
 
 ########################## TO-DO
 
-# TO-DO: INPUT VALIDATION: facilities on barrier
 # TO-DO: MAIN FUNCTION: check each arg, refactor?
 # TO-DO: OUTPUT REFACTOR: check which intermediate outputs are useful for geo coverage
 # TO-DO: OUTPUT: output directories
@@ -89,8 +88,8 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "scenarios", "facilities", "name", "analysis_type")
-missing_inputs <- setdiff(required_inputs, names(opt))
-sink(paste0("../logs/", "accessibility_analysis.log"), append = FALSE, split = TRUE, type = "output")
+missing_inputs <- amMissingOpts(required_inputs, opt)
+.errCon <- open_startup_logs("accessibility_analysis")
 if (length(missing_inputs) > 0) {
   print("Check your input args")
   stop()
@@ -113,6 +112,7 @@ max_time <- opt$max_time
 facilities_subset <- opt$f_subset
 knights_move <- opt$knights_move
 output_dir <- clean_filepath(opt$output_dir)
+migrate_to_run_logs(output_dir, .errCon)
 debug_print <- opt$debug_print
 
 if (debug_print) print("Arguments accepted. Setting projection")
@@ -196,7 +196,7 @@ names(t_scenarios) <- c("class", "label", "speed", "mode")
 # Facilities on barrier (or speed 0)
 
 validated_hf <- amValidateFacilitiesTable(
-  tblHf = inputHfFinal, mapMerged = "r_lcv", mapDem = "r_dem", tblSpeed = scenario_table
+  tblHf = tableFacilities, mapHf = inputHfFinal, mapMerged = "r_merged_lcv", mapDem = "r_dem", tblSpeed = t_scenarios
 )
 if (any(validated_hf$amOnZero)) {
   stop("Some facilities are on zero-speed positions on the land cover, please check")
@@ -240,7 +240,7 @@ args_traveltime <- switch(analysis_type,
     inputFriction = "r_friction", inputHf = inputHfFinal, inputStop = NULL,
     inputCoord = NULL, outputDir = NULL,
     outputTravelTime = "r_traveltime",
-    outputNearest = NULL, maxTravelTime = max_time, maxSpeed = 0, minTravelTime = NULL,
+    outputNearest = NULL, maxTravelTime = max_time, minTravelTime = NULL,
     timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1, memory = NULL,
     rawMode = FALSE, knights_move = knights_move
   ),
@@ -249,7 +249,7 @@ args_traveltime <- switch(analysis_type,
     inputCoord = NULL, outputDir = NULL,
     outputTravelTime = "r_traveltime",
     outputNearest = NULL, towardsFacilities = TRUE, maxTravelTime = max_time, minTravelTime = NULL,
-    maxSpeed = 0, timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1,
+    timeoutValue = -1L, getMemDiskRequirement = FALSE, ratioMemory = 1,
     memory = NULL, rawMode = FALSE, knights_move = knights_move
   )
 )

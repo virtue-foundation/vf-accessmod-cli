@@ -1,13 +1,37 @@
-from dataclasses import dataclass
 import functools
 import os
+import re
 import subprocess
-from threading import Thread
+from dataclasses import dataclass
+from threading import Lock, Thread
 
-from flask import Flask, flash, request, redirect, send_from_directory
+from flask import Flask, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+
+JOB_CONFLICT_MSG = "Cannot start job until previous one is finished"
+
+
+class JobConflictError(ValueError):
+    """A job is already running and another was requested."""
+
+
+@app.errorhandler(JobConflictError)
+def _handle_job_conflict(_error):
+    return {"error": JOB_CONFLICT_MSG}, 409
+
+
+_REGION_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
+
+
+class InvalidRegionStringError(ValueError):
+    """region_string is malformed; refuse to build paths from it."""
+
+
+@app.errorhandler(InvalidRegionStringError)
+def _handle_invalid_region_string(error):
+    return {"error": str(error)}, 400
 
 
 @dataclass
@@ -29,11 +53,20 @@ class JobRunner:
     }
 
     def _start_job(self, job):
+        """Atomically reserve a job. Raises if one is already running.
+
+        This is the authoritative guard: the test-and-set happens under
+        _job_lock so two concurrent requests can never both reserve a job
+        (single_job_only is only a fast-fail check).
+        """
         if job not in self._JOB_ENDPOINTS:
             raise ValueError("Unexpected job type")
-        self.last_endpoint = getattr(self, self._JOB_ENDPOINTS[job])
-        self.running = True
-        self.error = False
+        with _job_lock:
+            if self.running:
+                raise JobConflictError(JOB_CONFLICT_MSG)
+            self.last_endpoint = getattr(self, self._JOB_ENDPOINTS[job])
+            self.running = True
+            self.error = False
 
     def status_json(self):
         return {
@@ -43,14 +76,43 @@ class JobRunner:
             "error": self.error,
         }
 
-    def tracked_subprocess(self, process, job):
-        self._start_job(job)
+    def tracked_subprocess(self, process):
+        # No timeout: coverage analysis on large regions can run for a week of
+        # continuous processing. A static wall-clock cap would kill legitimate
+        # jobs; hang recovery is handled by container restart at the orchestrator.
         result = subprocess.run(process)
-        if result.returncode == 1:
+        if result.returncode != 0:
             self.error = True
         self.running = False
 
 
+def _run_job_in_thread(job, target, args):
+    """Reserve the job synchronously, then run target in a thread.
+
+    _start_job reserves atomically before Thread.start(), so single_job_only
+    can't be raced by concurrent requests. The wrapper guarantees running is
+    cleared even if the job crashes.
+    """
+    job_runner._start_job(job)
+
+    def run():
+        try:
+            target(*args)
+        except Exception:
+            job_runner.error = True
+        finally:
+            job_runner.running = False
+
+    thread = Thread(target=run)
+    try:
+        thread.start()
+    except Exception:
+        job_runner.running = False
+        raise
+    return thread
+
+
+_job_lock = Lock()
 job_runner = JobRunner()
 
 
@@ -69,7 +131,7 @@ def single_job_only(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         if job_runner.running:
-            raise ValueError("Cannot start job until previous one is finished")
+            raise JobConflictError(JOB_CONFLICT_MSG)
         return func(*args, **kwargs)
 
     return wrapper
@@ -102,6 +164,8 @@ def _add_accessibility_arguments(
 
 class FilePathHandler:
     def __init__(self, region_string):
+        if not isinstance(region_string, str) or not _REGION_RE.match(region_string):
+            raise InvalidRegionStringError(f"Invalid region_string: {region_string!r}")
         self.region_string = region_string
         self.base_path = "/geodata"
         self.gadm_filename_prefix = "gadm41_"
@@ -151,7 +215,7 @@ def run_merge_landcover(
     if not skip_artifacts:
         process.append("--clean-bridges")
     _add_common_arguments(paths, process, region_string)
-    job_runner.tracked_subprocess(process, "landcover")
+    job_runner.tracked_subprocess(process)
 
 
 def run_accessibility_analysis(
@@ -168,7 +232,7 @@ def run_accessibility_analysis(
     _add_common_arguments(
         paths, process, region_string, output_dir=paths.path_analysis_output
     )
-    job_runner.tracked_subprocess(process, "accessibility")
+    job_runner.tracked_subprocess(process)
 
 
 def run_coverage_analysis(
@@ -193,25 +257,27 @@ def run_coverage_analysis(
     process.extend(["--max_time", str(max_travel_time)])
     if capacity_column:
         process.extend(["--f_capacity", capacity_column])
-    if gadm_level:
+    if gadm_level is not None:
         process.extend(["--admin", paths.get_gadm_path(gadm_level)])
         process.extend(["--zonal_column", paths.get_gadm_column(gadm_level)])
     _add_common_arguments(
         paths, process, region_string, output_dir=paths.path_analysis_output
     )
-    job_runner.tracked_subprocess(process, "coverage")
+    job_runner.tracked_subprocess(process)
 
 
 @app.post(job_runner.landcover_endpoint)
 @single_job_only
 def landcover_request():
     request_data = request.get_json()
-    region_string = request_data["region_string"]
+    region_string = request_data.get("region_string")
+    if not region_string:
+        return {"error": "region_string is required"}, 400
     skip_rivers = request_data.get("skip_rivers", False)
     skip_lakes = request_data.get("skip_lakes", False)
     skip_artifacts = request_data.get("skip_artifacts", False)
     args = [region_string, skip_rivers, skip_lakes, skip_artifacts]
-    Thread(target=run_merge_landcover, args=args).start()
+    _run_job_in_thread("landcover", run_merge_landcover, args)
     return job_runner.status_json(), 202
 
 
@@ -219,12 +285,14 @@ def landcover_request():
 @single_job_only
 def accssibility_request():
     request_data = request.get_json()
-    region_string = request_data["region_string"]
+    region_string = request_data.get("region_string")
+    if not region_string:
+        return {"error": "region_string is required"}, 400
     facilities_subset = request_data.get("facilities_subset", None)
     knights_move = request_data.get("knights_move", False)
     anisotropic = request_data.get("anisotropic", True)
     args = [region_string, facilities_subset, knights_move, anisotropic]
-    Thread(target=run_accessibility_analysis, args=args).start()
+    _run_job_in_thread("accessibility", run_accessibility_analysis, args)
     return job_runner.status_json(), 202
 
 
@@ -232,11 +300,15 @@ def accssibility_request():
 @single_job_only
 def coverage_request():
     request_data = request.get_json()
-    region_string = request_data["region_string"]
+    region_string = request_data.get("region_string")
+    if not region_string:
+        return {"error": "region_string is required"}, 400
     facilities_subset = request_data.get("facilities_subset", None)
     knights_move = request_data.get("knights_move", False)
     anisotropic = request_data.get("anisotropic", True)
-    max_travel_time = request_data.get("max_travel_time", 0)
+    max_travel_time = request_data.get("max_travel_time", None)
+    if max_travel_time is None:
+        return {"error": "max_travel_time is required"}, 400
     gadm_level = request_data.get("gadm_level", None)
     capacity_column = request_data.get("capacity_column", None)
     args = [
@@ -248,7 +320,7 @@ def coverage_request():
         gadm_level,
         capacity_column,
     ]
-    Thread(target=run_coverage_analysis, args=args).start()
+    _run_job_in_thread("coverage", run_coverage_analysis, args)
     return job_runner.status_json(), 202
 
 
@@ -272,20 +344,19 @@ def file_transfer():
         paths = _get_path_object(request.form)
         # check if the post request has the file part
         if "file" not in request.files:
-            flash("No file part")
-            return redirect(request.url)
+            return {"error": "No file part"}, 400
         file = request.files["file"]
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
         if file.filename == "":
-            flash("No selected file")
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            path = paths.path_output
-            os.makedirs(path, exist_ok=True)
-            file.save(os.path.join(path, filename))
-            return {"region_string": paths.region_string, "filename": filename}, 201
+            return {"error": "No selected file"}, 400
+        if not allowed_file(file.filename):
+            return {"error": "File type not allowed"}, 400
+        filename = secure_filename(file.filename)
+        path = paths.path_output
+        os.makedirs(path, exist_ok=True)
+        file.save(os.path.join(path, filename))
+        return {"region_string": paths.region_string, "filename": filename}, 201
 
     if request.method == "POST":
         return _upload()

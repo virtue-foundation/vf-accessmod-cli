@@ -63,9 +63,12 @@ option_list <- list(
     type = "character", default = FALSE, action = "store_true",
     help = "Print diagnostic info to std-out", metavar = "character"
   ),
+  # Dev-only manual flag: never passed by app.py. When run interactively in an
+  # R/GRASS session, materializes each processed layer into the global env via
+  # `<<-` (e.g. r_lcv, v_barrier) so a developer can inspect them after the run.
   make_option("--debug-store",
     type = "character", default = FALSE, action = "store_true",
-    help = "Write GRASS objs into R session env", metavar = "character"
+    help = "Dev-only manual: load GRASS objs into R session env", metavar = "character"
   ),
   make_option("--clean-bridges",
     type = "character", default = FALSE, action = "store_true",
@@ -82,10 +85,10 @@ option_list <- list(
 )
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
-desired_inputs <- c("lcv", "roads", "b1", "b2", "help")
-missing_inputs <- setdiff(desired_inputs, names(opt))
-sink(paste0("../logs/", "merge_landcover.log"), append = FALSE, split = TRUE, type = "output")
-if (length(missing_inputs) > 0 && missing_inputs != "b2") {
+required_inputs <- c("lcv", "roads", "b1")
+missing_inputs <- amMissingOpts(required_inputs, opt)
+.errCon <- open_startup_logs("merge_landcover")
+if (length(missing_inputs) > 0) {
   print("Check your input args")
   stop()
 }
@@ -100,6 +103,7 @@ debug_print <- opt$`debug_print`
 debug_store <- opt$`debug-store`
 clean_bridges <- opt$`clean-bridges`
 output_dir <- clean_filepath(opt$output_dir)
+migrate_to_run_logs(output_dir, .errCon)
 
 if (debug_print) print("Arguments accepted. Setting projection")
 
@@ -163,7 +167,7 @@ if (path_barrier != "null") {
   if (is_loaded("v_barrier")) {
     print("Linear barrier vector file is already loaded")
   } else {
-    import_layer(path = path_barrier, layer = "v_barrier", type = "vector", ignore_proj = TRUE)
+    import_layer(path = path_barrier, layer_name = "v_barrier", type = "vector", ignore_proj = TRUE)
 
     if (debug_store) {
       v_barrier <<- read_VECT("v_barrier")
@@ -207,7 +211,7 @@ if (path_barrier_poly != "null") {
   if (is_loaded("v_barrier_poly")) {
     print("Area barrier vector file is already loaded")
   } else {
-    import_layer(path = path_barrier_poly, layer = "v_barrier_poly", type = "vector", ignore_proj = TRUE)
+    import_layer(path = path_barrier_poly, layer_name = "v_barrier_poly", type = "vector", ignore_proj = TRUE)
     if (debug_store) {
       v_barrier_poly <<- read_VECT("v_barrier_poly")
     }
@@ -266,7 +270,7 @@ if (length(barrier_stack) > 1) {
 # Import
 
 if (!is_loaded("v_road")) {
-  import_layer(path = path_road, layer = "v_road", type = "vector", ignore_proj = TRUE)
+  import_layer(path = path_road, layer_name = "v_road", type = "vector", ignore_proj = TRUE)
 }
 
 if (debug_store) {
@@ -279,7 +283,7 @@ stack_class <- "rStackRoad"
 road_class_key <- "class"
 road_label_key <- "label"
 road_table <- get_att_table(map = "v_road", cla_col = "class", lab_col = "label")
-road_table <- arrange(road_table, desc(class))
+road_table <- road_table[order(road_table$class, decreasing = TRUE), ]
 tblN <- nrow(road_table)
 
 if (debug_print) print(road_table)
@@ -437,8 +441,8 @@ if (all(is_loaded(raster_stack))) {
   # Cleaning bridge artefacts
   if (clean_bridges) {
     fromRoad <- raster_stack[grep("r_road", raster_stack)]
-    amBridgeFinder(fromRoad, merged_lcv_name, "bridge_layer")
-    amBridgeRemover("bridge_layer", removeFromMap = merged_lcv_name)
+    amBridgeFinder(fromRoad, merged_lcv_name, "tmp__bridge_layer")
+    amBridgeRemover("tmp__bridge_layer", removeFromMap = merged_lcv_name)
   }
 
   # set colors
@@ -463,4 +467,6 @@ if (all(is_loaded(raster_stack))) {
   if (debug_store) {
     r_merged_lcv <<- read_RAST(merged_lcv_name)
   }
+
+  amCleanupTmpLayers()
 }

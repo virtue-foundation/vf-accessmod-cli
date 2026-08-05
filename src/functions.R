@@ -2,6 +2,14 @@ clean_filepath <- function(path) {
   gsub("\\\\", "/", path)
 }
 
+# Names of required options whose parsed value is NULL (i.e. not supplied on
+# the CLI). optparse::parse_args() always returns every defined option name,
+# so presence in names(opt) is not a valid missing-check; the value must be
+# tested instead.
+amMissingOpts <- function(required, opt) {
+  required[vapply(required, function(n) is.null(opt[[n]]), logical(1))]
+}
+
 amRastExists <- function(filter = "", mapset = NULL) {
   amLayerExists(filter, mapset, "raster")
 }
@@ -16,17 +24,16 @@ amSubPunct <- function(vect,
                        rmLeadingSep = TRUE,
                        rmDuplicateSep = TRUE,
                        debug = FALSE) {
-  # vect<-substr("'",'',iconv(vect, to='ASCII//TRANSLIT'))
-  res <- sub("[[:punct:]]+|[[:blank:]]+", sep, vect) # replace punctuation by sep
-  res <- sub("\n", "", res)
+  res <- gsub("[[:punct:]]+|[[:blank:]]+", sep, vect) # replace punctuation by sep
+  res <- gsub("\n", "", res)
   if (rmDuplicateSep) {
     if (nchar(sep) > 0) {
-      res <- sub(paste0("(\\", sep, ")+"), sep, res) # avoid duplicate
+      res <- gsub(paste0("(\\", sep, ")+"), sep, res) # avoid duplicate
     }
   }
   if (rmLeadingSep) {
     if (nchar(sep) > 0) {
-      res <- sub(paste0("^", sep), "", res) # remove trailing sep.
+      res <- sub(paste0("^", sep), "", res) # remove leading sep.
     }
   }
   if (rmTrailingSep) {
@@ -35,33 +42,6 @@ amSubPunct <- function(vect,
     }
   }
   res
-}
-
-# Get category table for a previously imported raster
-amGetRasterCategory <- function(raster = NULL) {
-  if (isEmpty(raster)) stop("No raster map name provided")
-
-  tbl <- data.frame(integer(0), character(0))
-
-  tblText <- execGRASS("r.category",
-    map = raster,
-    intern = TRUE
-  )
-
-  # execGRASS returns a really awkward non-table thing, so we reformat it
-  if (!isEmpty(tblText)) {
-    tbl <- read.csv(
-      text = tblText,
-      sep = "\t",
-      header = FALSE,
-      stringsAsFactors = FALSE
-    )
-    if (ncol(tbl) == 2) {
-      tbl[, 1] <- as.integer(tbl[, 1])
-    }
-  }
-  names(tbl) <- c("class", "label")
-  tbl
 }
 
 #' Check for no data
@@ -82,7 +62,7 @@ amNoDataCheck <- function(val = NULL) {
       return(TRUE)
     }
     v1 <- val[[1]]
-    if (isTRUE(v1 %in% config$defaultNoData) || is.na(v1) || nchar(v1, allowNA = TRUE) == 0) {
+    if (is.na(v1) || nchar(v1, allowNA = TRUE) == 0) {
       return(TRUE)
     }
   }
@@ -155,23 +135,13 @@ amSubQuote <- function(txt) {
 
 #' Get data class info
 #' @param class Data class
-#' @param value Value to retrieve, by default, language specific class
+#' @param value Value to retrieve (e.g. "type", "colors")
 #' @export
 amClassListInfo <- function(class = NULL, value = NULL) {
-  vals <- c("type", "colors", "importable", "internal")
-  # lang <- amTranslateGetSavedLanguage()
   res <- character(0)
   if (!is.null(class)) {
     for (i in class) {
-      if (is.null(value)) {
-        res <- c(res, config$dataClassList[[i]][[lang]])
-      } else {
-        # if (!value %in% vals) {
-        #   amDebugMsg(paste("value must be in ", paste(vals, collapse = ";")))
-        #   return()
-        # }
-        res <- c(res, config$dataClassList[[i]][[value]])
-      }
+      res <- c(res, config$dataClassList[[i]][[value]])
     }
     res
   }
@@ -193,7 +163,7 @@ rmLayerIfExists <- function(filter = "", type = c("vector", "raster")) {
         execGRASS("g.remove",
           flags = c("b", "f"),
           type = type,
-          pattern = paste0(filter, sep = "|")
+          pattern = filter
         )
       }
     },
@@ -251,16 +221,8 @@ import_layer <- function(path, type, layer_name, ignore_proj = FALSE, overwrite 
   # import parameters
   if (type == "raster") { # e.g., .tif
     import_parameters <- list(input = path, output = layer_name)
-  } else if (type == "vector") { # could be shapefile directory or .geojson
-    if (is_a_dir(path)) { # shapefile directory
-      filename <- get_shapefile_dir(path)
-      import_parameters <- list(
-        input = path, output = layer_name, layer = filename
-        # , snap=0.0001
-      )
-    } else { # probably geojson
-      import_parameters <- list(input = path, output = layer_name)
-    }
+  } else if (type == "vector") { # .geojson
+    import_parameters <- list(input = path, output = layer_name)
   }
 
   flags <- c()
@@ -283,10 +245,6 @@ is_loaded <- function(name, type = "all", overwrite = FALSE) {
   is_avail
 }
 
-is_a_dir <- function(path) {
-  file_ext(path) == ""
-}
-
 add_to_stack <- function(obj, stack = NULL, back = FALSE) {
   if (back) {
     new_stack <- c(stack, obj)
@@ -294,10 +252,6 @@ add_to_stack <- function(obj, stack = NULL, back = FALSE) {
     new_stack <- c(obj, stack)
   }
   new_stack
-}
-
-get_shapefile_dir <- function(path) {
-  file_path_sans_ext(list.files(path)[1])
 }
 
 # TO-DO: Could convert type/name notation into a df
@@ -419,7 +373,7 @@ amRandomName <- function(prefix = NULL, suffix = NULL, n = 20, cleanString = FAL
     prefix <- amSubPunct(prefix, "_")
     suffix <- amSubPunct(suffix, "_")
   }
-  rStr <- paste(letters[round(runif(n) * 24)], collapse = "")
+  rStr <- paste(sample(letters, n, replace = TRUE), collapse = "")
   str <- c(prefix, rStr, suffix)
   paste(str, collapse = collapse)
 }
@@ -444,8 +398,8 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
   is_valid_select_col <- select_col %in% names(tableFacilities)
   if (!is_valid_select_col) stop("Choose a valid subset column")
 
-  idHfAll <- tableFacilities[[config$vector_key]]
-  idHfSelect <- tableFacilities[tableFacilities[select_col] == 1, config$vector_key]
+  idHfAll <- tableFacilities[[config$vectorKey]]
+  idHfSelect <- tableFacilities[tableFacilities[select_col] == 1, config$vectorKey]
   fName <- amRandomName("tmp__")
   idHfNotSelect <- idHfAll[!idHfAll %in% idHfSelect]
   hasMoreSelect <- length(idHfNotSelect) < length(idHfSelect)
@@ -462,16 +416,23 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
     idHfSelect <- idHfSelect[!is.na(idHfSelect)]
     idHfNotSelect <- idHfNotSelect[!is.na(idHfNotSelect)]
 
+    # Guard against an empty IN list, which would build invalid SQL
+    # ("cat IN ()") and crash v.extract. Checked after NA removal so a
+    # selection whose ids are all NA is caught too.
+    if (length(idHfSelect) == 0) {
+      stop("No facilities selected in the subset column")
+    }
+
     if (hasMoreSelect) {
       qSql <- sprintf(
         '"%s NOT IN (%s)"',
-        config$vector_key,
+        config$vectorKey,
         paste0("'", idHfNotSelect, "'", collapse = ",")
       )
     } else {
       qSql <- sprintf(
         '"%s IN (%s)"',
-        config$vector_key,
+        config$vectorKey,
         paste0("'", idHfSelect, "'", collapse = ",")
       )
     }
@@ -545,12 +506,12 @@ sysEvalFreeMbMem <- function() {
 #' @param {Character} rasters Rasters to set the region
 #' @param {Character} vectors vectors to set the region
 amRegionSet <- function(rasters = character(0), vectors = character(0)) {
-  hasRasters <- !amRastExists(rasters)
-  hasVectors <- !amVectExists(vectors)
+  hasRasters <- amRastExists(rasters)
+  hasVectors <- amVectExists(vectors)
 
   if (!hasRasters && !hasVectors) {
-    warnings("amRegionSet : no layer available to update region")
-    return
+    warning("amRegionSet: no layer available to update region")
+    return()
   }
   print("Setting region using the following:")
   print(rasters)
@@ -584,7 +545,6 @@ amIsotropicTravelTime <- function(
   outputTravelTime = NULL,
   outputNearest = NULL,
   maxTravelTime = 0,
-  maxSpeed = 0,
   minTravelTime = NULL,
   timeoutValue = -1L,
   getMemDiskRequirement = FALSE,
@@ -602,26 +562,8 @@ amIsotropicTravelTime <- function(
     )
   )
 
-  vHasLines <- as.numeric(vInfo$lines) > 0
-  tmpStart <- NULL
-  if (vHasLines) {
-    tmpStart <- amRandomName("tmp__raster_start")
-    on_exit_add({
-      rmRastIfExists(tmpStart)
-    })
-    suppressWarnings({
-      execGRASS(
-        "v.to.rast",
-        input = inputHf,
-        output = tmpStart,
-        use = "val",
-        value = 1
-      )
-    })
-    inputRaster <- tmpStart
-    inputHf <- NULL
-  } else {
-    inputRaster <- NULL
+  if (as.numeric(vInfo$lines) > 0) {
+    stop("Health facilities must be a point vector; found line geometry")
   }
 
   # default memory allocation
@@ -655,7 +597,6 @@ amIsotropicTravelTime <- function(
     output = outputTravelTime,
     nearest = outputNearest,
     start_points = inputHf,
-    start_raster = inputRaster,
     start_coordinates = inputCoord,
     stop_points = inputStop,
     outdir = outputDir,
@@ -722,32 +663,7 @@ amIsotropicTravelTime <- function(
     )
   }
 
-  # if (!getMemDiskRequirement) {
-  #   amMsg(
-  #     type = "log",
-  #     text = sprintf(
-  #       "Memory required for r.cost = %1$s MB. Memory available = %2$s MB.
-  #        Disk space required = %3$s MB. Disk space available = %4$s MB",
-  #       memRequire,
-  #       free,
-  #       diskRequire,
-  #       disk
-  #     )
-  #   )
-  # }
-
   if (!getMemDiskRequirement) {
-    if (maxSpeed > 0 && maxTravelTime > 0) {
-      on_exit_add({
-        amSpeedBufferRegionRestore()
-      })
-      amSpeedBufferRegionInit(
-        c(inputHf, inputStop),
-        maxSpeed / 3.6,
-        maxTravelTime * 60
-      )
-    }
-
     #
     # Remove stops if not on current region
     #
@@ -808,7 +724,6 @@ amAnisotropicTravelTime <- function(
   towardsFacilities = FALSE,
   maxTravelTime = 0,
   minTravelTime = NULL,
-  maxSpeed = 0,
   timeoutValue = "null()",
   getMemDiskRequirement = FALSE,
   ratioMemory = 1,
@@ -861,28 +776,8 @@ amAnisotropicTravelTime <- function(
     )
   )
 
-  vHasLines <- as.numeric(vInfo$lines) > 0
-
-  tmpStart <- NULL
-
-  if (vHasLines) {
-    tmpStart <- amRandomName("tmp__raster_start")
-    on_exit_add({
-      rmRastIfExists(tmpStart)
-    })
-    suppressWarnings({
-      execGRASS(
-        "v.to.rast",
-        input = inputHf,
-        output = tmpStart,
-        use = "val",
-        value = 1
-      )
-    })
-    inputRaster <- tmpStart
-    inputHf <- NULL
-  } else {
-    inputRaster <- NULL
+  if (as.numeric(vInfo$lines) > 0) {
+    stop("Health facilities must be a point vector; found line geometry")
   }
 
   #
@@ -898,7 +793,6 @@ amAnisotropicTravelTime <- function(
     output = outputTravelTime,
     nearest = outputNearest,
     start_points = inputHf,
-    start_raster = inputRaster,
     start_coordinates = inputCoord,
     stop_points = inputStop,
     outdir = outputDir,
@@ -964,41 +858,8 @@ amAnisotropicTravelTime <- function(
       )
     )
   }
-  #
-  # if (!getMemDiskRequirement) {
-  #   amMsg(
-  #     type = "log",
-  #     text = sprintf(
-  #       "Memory required for r.walk.accessmod = %1$s MB. Memory available = %2$s MB.
-  #        Disk space required = %3$s MB. Disk space available = %4$s MB",
-  #       memRequire,
-  #       free,
-  #       diskRequire,
-  #       disk
-  #     )
-  #   )
-  # }
 
   if (!getMemDiskRequirement) {
-    if (maxSpeed > 0 && maxTravelTime > 0) {
-      on_exit_add({
-        amSpeedBufferRegionRestore()
-      })
-      if (towardsFacilities) {
-        amSpeedBufferRegionInit(
-          c(inputHf, inputStop),
-          maxSpeed / 3.6,
-          maxTravelTime * 60
-        )
-      } else {
-        amSpeedBufferRegionInit(
-          c(inputHf),
-          maxSpeed / 3.6,
-          maxTravelTime * 60
-        )
-      }
-    }
-
     #
     # Remove stops if not on current region
     #
@@ -1067,13 +928,11 @@ amCleanTravelTime <- function(map,
   int16Max <- (2^16) / 2 - 1
   int32Max <- (2^32) / 2 - 1
   unlimitedMode <- maxTravelTime == 0
-  maxSeconds <- 0
   divider <- 1
   timeoutMinutesLimit <- 0
   timeoutMinutesValue <- timeoutValue
   cutSecondsStart <- 0
   cutSecondsEnd <- 0
-  hasTimeout <- FALSE
 
   if (convertToMinutes) {
     divider <- 60
@@ -1359,40 +1218,40 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   tbl
 }
 
-#' Import temporary shapefile catchment to final directory
-#' @param shpFile Full path to temp catchment file . eg. /tmp/super.shp
-#' @param outDir Directory path where are stored shapefile. eg. /home/am/data/shapefiles/
-#' @param outName Name of the final catchment shapefile, without extension. e.g. catchments_001
+#' Import temporary catchment vector to final directory
+#' @param vectFile Full path to temp catchment file. eg. /tmp/super.gpkg
+#' @param outDir Directory path where the output vector is stored.
+#' @param outName Name of the final catchment vector, without extension. e.g. catchments_001
 #' @return Boolean Done
-amMoveShp <- function(shpFile, outDir, outName) {
+amMoveGpkg <- function(vectFile, outDir, outName) {
   #
-  # Collect all shp related file and copy them to final directory.
+  # Collect all gpkg related files and copy them to final directory.
   # NOTE: make sure that:
-  # - pattern of shapefile is unique in its directory
+  # - pattern of vector is unique in its directory
 
   # in case of variable in path, convert outdir to fullpath
-  if (length(shpFile) < 1) {
+  if (length(vectFile) < 1) {
     return()
   }
-  outDir <- system(sprintf("echo %s", outDir), intern = TRUE)
+  outDir <- path.expand(outDir)
 
-  fe <- file.exists(shpFile)
+  fe <- file.exists(vectFile)
   de <- dir.exists(outDir)
-  so <- isTRUE(grep(".*\\.gpkg$", shpFile) > 0)
+  so <- grepl(".*\\.gpkg$", vectFile)
 
   if (!fe) {
     warning(
-      sprintf("amMoveShp: %s input file does not exists", shpFile)
+      sprintf("amMoveGpkg: %s input file does not exists", vectFile)
     )
   }
   if (!de) {
     warning(
-      sprintf("amMoveShp: %s output directory does not exists", outDir)
+      sprintf("amMoveGpkg: %s output directory does not exists", outDir)
     )
   }
   if (!so) {
     warning(
-      sprintf("amMoveShp: %s input file does not have .shp extension", shpFile)
+      sprintf("amMoveGpkg: %s input file does not have .gpkg extension", vectFile)
     )
   }
 
@@ -1400,11 +1259,11 @@ amMoveShp <- function(shpFile, outDir, outName) {
 
   if (all(ok)) {
     # base name file for pattern.
-    baseShape <- gsub(".gpkg", "", basename(shpFile))
-    # list files (we can also use )
-    allShpFiles <- list.files(dirname(shpFile), pattern = paste0("^", baseShape), full.names = TRUE)
-    # Copy each files in final catchment directory.
-    for (s in allShpFiles) {
+    baseShape <- gsub(".gpkg", "", basename(vectFile))
+    # list files matching the base name.
+    allVectFiles <- list.files(dirname(vectFile), pattern = paste0("^", baseShape), full.names = TRUE)
+    # Copy each file into the final catchment directory.
+    for (s in allVectFiles) {
       sExt <- file_ext(s)
       newPath <- file.path(outDir, paste0(outName, ".", sExt))
       file.copy(s, newPath, overwrite = TRUE)
@@ -1444,4 +1303,34 @@ amCleanupTmpLayers <- function() {
   if (dir.exists("temp")) {
     unlink("temp", recursive = TRUE)
   }
+}
+
+# --- Log handling ----------------------------------------------------------
+# Each entrypoint opens a startup log in ../logs/ before validating inputs, then
+# migrates to per-run logs inside its output_dir once that path is known.
+# R constraints: a message sink needs a file() connection (not a filename
+# string), and only ONE message diversion may be active at a time -- so the
+# startup message sink is closed before the run-specific one opens. append=FALSE
+# truncates on open, so each run starts with a fresh log.
+
+open_startup_logs <- function(name) {
+  if (!dir.exists("../logs")) {
+    dir.create("../logs")
+  }
+  sink(paste0("../logs/", name, ".log"), append = FALSE, split = TRUE, type = "output")
+  .errCon <- file(paste0("../logs/", name, "_error.log"), open = "wt")
+  sink(.errCon, type = "message")
+  invisible(.errCon)
+}
+
+migrate_to_run_logs <- function(output_dir, .errCon) {
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir)
+  }
+  sink(paste0(output_dir, "/output_log.txt"), append = FALSE, split = TRUE, type = "output")
+  sink(type = "message")
+  close(.errCon)
+  .errCon <- file(paste0(output_dir, "/error_log.txt"), open = "wt")
+  sink(.errCon, type = "message")
+  invisible(.errCon)
 }

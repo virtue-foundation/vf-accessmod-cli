@@ -6,7 +6,7 @@ Guidance for agents working in `vf-accessmod-cli`. GUI-less, containerized port 
 
 - **Python Flask API** (`src/app.py`) that spawns **R scripts** as `Rscript` subprocesses. No JS frontend.
 - **R** scripts run inside a **GRASS GIS 7.8.7** session (`rgrass`), with a custom C module `r.walk.accessmod` and a patched `r.reclass`.
-- No `package.json`, no test suite, no linter/formatter/typecheck configured. Don't invent commands that don't exist.
+- No `package.json`. Linters/formatters run via pre-commit hooks (`.pre-commit-config.yaml`): R `style-files` (styler) + `lintr`, Python `ruff` + `ruff-format`. They auto-fix in place; re-stage after hooks reformat. Don't invent commands that don't exist.
 
 ## Two-image Docker architecture (don't confuse them)
 
@@ -22,6 +22,13 @@ CI (`.github/workflows/`): the env-image workflow runs manually (`workflow_dispa
 
 Run inside the env container (devcontainer uses the same env image); GRASS and R are not installable on a bare host without the full build. `config.R` initializes a GRASS session on load — it expects `GISBASE` / `GISDBASE` env vars to already be set (they are, in the env image).
 
+## Testing
+
+- **Python** (Flask app): `uv run pytest` from repo root. Tests in `tests/` (`test_allowed_file.py`, `test_file_path_handler.py`, `test_job_runner.py`). `tests/conftest.py` adds `src/` to `sys.path`.
+- **R unit tests** (pure helpers in `src/functions.R`): `Rscript -e 'library(testthat); test_dir("tests/testthat", reporter="summary")'` from repo root. These need no GRASS session. The full runner `Rscript tests/run.R` also runs `tests/integration/test_grass_session.R`, which **requires a live GRASS session** (env container only) and will abort on a bare host.
+- **R linters** (`style-files`, `lintr`) and `ruff` run via pre-commit hooks on commit.
+- The R entrypoints (`accessibilityAnalysis.R`, `geoCoverageAnalysis.R`, `mergeLandCover.R`) are **not** covered by unit tests — only integration-tested inside the GRASS container.
+
 ## App runtime conventions (`src/app.py`)
 
 - Endpoints: `POST /merge_landcover`, `POST /accessibility_analysis`, `POST /coverage_analysis`, `GET /check`, `GET|POST /file_transfer`.
@@ -34,7 +41,8 @@ Run inside the env container (devcontainer uses the same env image); GRASS and R
 
 - `accessibilityAnalysis.R`, `geoCoverageAnalysis.R`, `mergeLandCover.R` are the three entrypoints invoked by `app.py`. Each uses `optparse`; `app.py`'s `_add_common_arguments` / `_add_accessibility_arguments` build the CLI, so changing a flag requires updating **both** the R `make_option` list and the Python builder.
 - `--name` (region string), `--output_dir`, and `--debug_print` are added to every script by `_add_common_arguments`.
-- Shared helpers: `functions.R` (general), `functions-geo.R` (GRASS/geo), `functions_accessibility.R`. `config.R` holds all paths/classes and loads `dictionary/main.json` + `dictionary/classes.json` — edit dictionary JSON, not the R that reads it.
+- Shared helpers: `functions.R` (general, incl. the log helpers), `functions-geo.R` (GRASS/geo). `init_session.R` initializes the GRASS session and is sourced by each entrypoint **after** `config.R`. `config.R` holds all paths/classes and loads `dictionary/classes.json` — edit dictionary JSON, not the R that reads it.
+- **Logging convention** (all three entrypoints, structurally identical): `open_startup_logs(name)` diverts stdout/stderr to `../logs/<name>_*.log` before validation; after the `--output_dir` is known, `migrate_to_run_logs(output_dir, .errCon)` reopens the sinks as `<output_dir>/output_log.txt` / `<output_dir>/error_log.txt`. Both helpers live in `functions.R`.
 
 ## Things that are easy to get wrong
 

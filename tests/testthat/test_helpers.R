@@ -8,19 +8,16 @@
 # (R's lazy evaluation means sourcing functions.R doesn't need this,
 # only the test calls that exercise those branches do.)
 config <- list(
-  defaultNoData = NULL,
+  vectorKey = "cat",
   dataClassList = list(
     "1" = list(
-      type = "raster", colors = "#000000", importable = TRUE, internal = FALSE,
-      en = "Raster layer"
+      type = "raster", colors = "#000000", importable = TRUE, internal = FALSE
     ),
     "2" = list(
-      type = "vector", colors = "#FFFFFF", importable = TRUE, internal = FALSE,
-      en = "Vector layer"
+      type = "vector", colors = "#FFFFFF", importable = TRUE, internal = FALSE
     )
   )
 )
-lang <- "en"
 
 # Source functions.R so its functions are available to tests.
 # When running under covr::file_coverage(), the source file is already
@@ -71,12 +68,18 @@ test_that("amSubPunct respects rm* flags", {
   expect_equal(amSubPunct("_hello_", rmDuplicateSep = FALSE, rmLeadingSep = TRUE, rmTrailingSep = TRUE), "hello")
 })
 
+test_that("amSubPunct replaces every punctuation/blank run", {
+  expect_equal(amSubPunct("a.b.c"), "a_b_c")
+  expect_equal(amSubPunct("a b c"), "a_b_c")
+  expect_equal(amSubPunct("a. -b"), "a_b")
+})
+
 test_that("amSubPunct with custom sep", {
   expect_equal(amSubPunct("hello.world", sep = "-"), "hello-world")
 })
 
 test_that("amSubPunct removes newlines without replacement", {
-  # sub("\n", "", ...) removes newlines, does not replace with sep
+  # gsub("\n", "", ...) removes newlines, does not replace with sep
   expect_equal(amSubPunct("hello\nworld"), "helloworld")
 })
 
@@ -134,15 +137,10 @@ test_that("amParseOptions supports custom separators", {
 
 # ---- amRandomName ----
 
-test_that("amRandomName produces a non-empty string", {
+test_that("amRandomName produces exactly n characters", {
   name <- amRandomName(n = 10)
-  expect_true(nchar(name) > 0)
+  expect_true(nchar(name) == 10)
 })
-
-# NB: amRandomName currently uses round(runif(n) * 24) which can
-# hit index 0 (~2%/pos), dropping a char.  The test above only
-# checks non-empty.  If exact n-char is needed, change to
-# sample(letters, n, replace = TRUE).
 
 test_that("amRandomName prepends prefix and appends suffix", {
   name <- amRandomName(prefix = "pre", suffix = "suf", n = 5)
@@ -208,11 +206,30 @@ test_that("isEmpty delegates to amNoDataCheck", {
 # ---- amClassListInfo ----
 
 test_that("amClassListInfo retrieves class info", {
-  res <- amClassListInfo("1")
+  res <- amClassListInfo("1", "type")
   expect_true(length(res) > 0)
 })
 
 test_that("amClassListInfo returns NULL for NULL class", {
   # No else branch; the last expression (if) evaluates to NULL when FALSE
   expect_null(amClassListInfo(NULL))
+})
+
+# ---- amFacilitiesSubset ----
+
+test_that("amFacilitiesSubset errors when no facilities are selected", {
+  tbl <- data.frame(cat = c(1, 2, 3), active = c(0, 0, 0))
+  # All zeros: idHfSelect is empty, so the SQL IN () branch must not run.
+  expect_error(
+    amFacilitiesSubset(tbl, "facilities", "active"),
+    "No facilities selected"
+  )
+})
+
+# ---- amMissingOpts ----
+
+test_that("amMissingOpts reports only required options with NULL values", {
+  opt <- list(lcv = "path.tif", dem = NULL, name = NULL, output_dir = ".")
+  expect_identical(amMissingOpts(c("lcv", "dem", "name"), opt), c("dem", "name"))
+  expect_identical(amMissingOpts(c("lcv"), opt), character(0))
 })

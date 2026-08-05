@@ -117,19 +117,15 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 required_inputs <- c("lcv", "dem", "pop", "scenarios", "facilities")
-missing_inputs <- required_inputs[!required_inputs %in% names(opt)]
-sink(paste0("../logs/", "geographic_coverage_analysis.log"), append = FALSE, split = TRUE, type = "output")
-# sink(type="message") requires a connection (not a filename string) and only
-# one message diversion may be active at a time; closed before reopening below.
-.errCon <- file(paste0("../logs/", "geographic_coverage_analysis_error.log"), open = "wt")
-sink(.errCon, type = "message")
+missing_inputs <- amMissingOpts(required_inputs, opt)
+.errCon <- open_startup_logs("geographic_coverage_analysis")
 if (length(missing_inputs) > 0) {
   print("Missing the following required file inputs, please check")
   print(paste(missing_inputs, collapse = ", "))
   stop()
 }
 required_params <- c("name", "analysis_type", "f_order", "f_name")
-missing_params <- required_params[!required_params %in% names(opt)]
+missing_params <- amMissingOpts(required_params, opt)
 if (length(missing_params) > 0) {
   print("Missing the following required parameters, please check")
   print(paste(missing_params, collapse = ", "))
@@ -189,16 +185,7 @@ if ((!is.null(path_admin)) && (!is.null(input_zonal_col))) {
 debug_print <- opt$debug_print
 
 output_dir <- clean_filepath(opt$output_dir)
-if (!dir.exists(output_dir)) {
-  dir.create(output_dir)
-}
-sink(paste0(output_dir, "/", "output_log.txt"), append = FALSE, split = TRUE, type = "output")
-# Close the early message sink before opening the run-specific one (R allows
-# only one message diversion at a time).
-sink(type = "message")
-close(.errCon)
-.errCon <- file(paste0(output_dir, "/", "error_log.txt"), open = "wt")
-sink(.errCon, type = "message")
+migrate_to_run_logs(output_dir, .errCon)
 
 if (debug_print) print("Arguments accepted. Setting projection")
 
@@ -342,7 +329,6 @@ maxTravelTime <- input_max_time
 maxTravelTimeOrder <- 120
 dirAnalysis <- "toHF"
 typeAnalysis <- input_analysis_type
-useMaxSpeedMask <- FALSE
 keepFullHfTable <- FALSE
 # logic
 # return path = towards facilities.
@@ -382,7 +368,6 @@ args <- list(
   radius = 5000,
   maxTravelTime = maxTravelTime,
   maxTravelTimeOrder = maxTravelTimeOrder,
-  useMaxSpeedMask = useMaxSpeedMask,
   hfIdx = hfIdx,
   nameField = hfLab,
   capField = capField,

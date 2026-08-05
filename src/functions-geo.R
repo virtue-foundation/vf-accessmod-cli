@@ -18,14 +18,12 @@ amCapacityAnalysis <- function(
   outputPopBarrier,
   outputTableZonal,
   outputTableCapacity,
-  idHfOrderField,
   removeCapted = FALSE,
   vectCatch = FALSE,
   popOnBarrier = FALSE,
   typeAnalysis,
   towardsFacilities,
   maxTravelTime,
-  useMaxSpeedMask = FALSE,
   maxTravelTimeOrder = NULL,
   radius,
   hfIdx,
@@ -47,13 +45,6 @@ amCapacityAnalysis <- function(
   # Set default
   #
 
-  # if cat is set as index, change to cat_orig
-  if (hfIdx == config$vector_key) {
-    hfIdxNew <- paste0(config$vector_key, "_orig")
-  } else {
-    hfIdxNew <- hfIdx
-  }
-
   orderResult <- data.frame(
     id = character(0),
     value = numeric(0)
@@ -61,9 +52,6 @@ amCapacityAnalysis <- function(
 
   # Labels
   labelField <- "amLabel"
-
-  # Set maxSpeed
-  maxSpeed <- ifelse(isTRUE(useMaxSpeedMask), max(tableScenario$speed), 0)
 
   # # We would subset the table here, but it is already being subset prior to calling this fn
   # (Also this code is old and we should use amFacilitiesSubset())
@@ -124,7 +112,7 @@ amCapacityAnalysis <- function(
       outputFriction = outputFriction,
       outputPopResidual = "tmp_nested_p",
       outputHfCatchment = "tmp_nested_catch",
-      typeAnalysis = ifelse(hfOrder == "circBuffer", "circular", typeAnalysis),
+      typeAnalysis = typeAnalysis,
       towardsFacilities = towardsFacilities,
       radius = radius,
       maxTravelTime = maxTravelTimeOrder,
@@ -167,6 +155,7 @@ amCapacityAnalysis <- function(
       "amOrderValues_%s",
       amSubPunct(orderField)
     ),
+    # ponytail: circBuffer/travelTime arms are dead — hfOrder is hardcoded "tableOrder" in geoCoverageAnalysis.R
     "circBuffer" = sprintf(
       "amOrderValues_popDistance%sm",
       radius
@@ -275,7 +264,6 @@ amCapacityAnalysis <- function(
         outputTravelTime = tmpCost,
         towardsFacilities = towardsFacilities,
         maxTravelTime = maxTravelTime,
-        maxSpeed = maxSpeed,
         timeoutValue = "null()"
       ),
       "isotropic" = amIsotropicTravelTime(
@@ -283,13 +271,7 @@ amCapacityAnalysis <- function(
         inputHf = tmpHf,
         outputTravelTime = tmpCost,
         maxTravelTime = maxTravelTime,
-        maxSpeed = maxSpeed,
         timeoutValue = "null()"
-      ),
-      "circular" = amCircularTravelDistance(
-        inputHf          = tmpHf,
-        outputBuffer     = tmpCost,
-        radius           = radius
       )
     )
 
@@ -316,6 +298,7 @@ amCapacityAnalysis <- function(
       maxTravelTime = maxTravelTime,
       ignoreCapacity = ignoreCapacity,
       addColumnPopOrigTravelTime = addColumnPopOrigTravelTime,
+      debug_print = debug_print,
       iterationNumber = incN,
       removeCapted = removeCapted,
       vectCatch = vectCatch
@@ -443,8 +426,8 @@ amCapacityAnalysis <- function(
     print("All the files in the temporary catchment vector dir")
     print(tmpVectCatchOut)
 
-    amMoveShp(
-      shpFile = tmpVectCatchOut,
+    amMoveGpkg(
+      vectFile = tmpVectCatchOut,
       outDir = outdir,
       outName = outputHfCatchment
     )
@@ -466,37 +449,6 @@ amCapacityAnalysis <- function(
     catchmentVectorLocation = file.path(outdir, outputHfCatchment)
   )
 
-
-  # if (!preAnalysis) {
-  #   #
-  #   # Local db connection
-  #   #
-  #   dbCon <- amMapsetGetDbCon()
-  #   on_exit_add({
-  #     dbDisconnect(dbCon)
-  #   })
-  #
-  #   #
-  #   # Write summary table in db
-  #   #
-  #   dbWriteTable(
-  #     dbCon,
-  #     outputTableCapacity,
-  #     tblOut,
-  #     overwrite = T
-  #   )
-  #   #
-  #   # Write zonal stat table if exists
-  #   #
-  #   if (!is.null(tblPopByZone) && nrow(tblPopByZone) > 0) {
-  #     dbWriteTable(
-  #       dbCon,
-  #       outputTableZonal,
-  #       tblPopByZone,
-  #       overwrite = T
-  #     )
-  #   }
-  # }
 
   out
 }
@@ -658,14 +610,14 @@ amOuterRing <- function(inputMapTravelTime, inputMapPopResidual, propToRemove = 
 #' @param facilityLabel (optional) Label describing the capacity
 #' @param facilityLabelField (optional) Name of the column for the label describing the capacity
 #' @param iterationNumber Number (integer) of the iteration currently processed.
-#'   Is used to determine if the shapefile in output should be overwrite or if
+#'   Is used to determine if the vector in output should be overwrite or if
 #'   we append the geometry to it
 #' @param maxTravelTime Maximum cost allowed
 #' @param ignoreCapacity Ignore capacity, use maximum population.
 #' @param removeCapted Should this analysis remove capted population ?
-#' @param vectCatch Should this analysis create a shapefile as output ?
+#' @param vectCatch Should this analysis create a vector as output ?
 #' @return A named list Containing the capacity analysis (amCapacityTable),
-#'   the path to the shapefile (amCatchmentFilePath) and a message (msg).
+#'   the path to the vector (amCatchmentFilePath) and a message (msg).
 #' @export
 amCatchmentAnalyst <- function(
   inputTablePopByZone = NULL,
@@ -687,14 +639,13 @@ amCatchmentAnalyst <- function(
   addColumnPopOrigTravelTime = FALSE,
   removeCapted = TRUE,
   vectCatch = TRUE,
-  outdir,
-  language = config$language
+  debug_print = FALSE
 ) {
   #
   # Check input before going further
   #
   if (!ignoreCapacity && isEmpty(facilityCapacity)) {
-    stop(sprintf(ams("analysis_catchment_error_capacity_not_valid"), facilityId))
+    stop(sprintf("The capacity of facility with id %s is not valid", facilityId))
   }
 
 
@@ -756,7 +707,7 @@ amCatchmentAnalyst <- function(
   popResidualAfter <- as.numeric(NA)
 
   # population by zone is empty
-  isEmpty <- TRUE
+  pbzIsEmpty <- TRUE
 
   # If pop by zone is not given, extract it
   if (is.null(inputTablePopByZone)) {
@@ -767,8 +718,6 @@ amCatchmentAnalyst <- function(
   } else {
     pbz <- inputTablePopByZone
   }
-
-  write.csv(pbz, "pbz.csv")
 
   #
   # Total pop under travel time with original population
@@ -798,7 +747,7 @@ amCatchmentAnalyst <- function(
   }
 
   # check if whe actually have zone
-  isEmpty <- isTRUE(nrow(pbz) == 0)
+  pbzIsEmpty <- isTRUE(nrow(pbz) == 0)
 
   # starting population
 
@@ -808,7 +757,7 @@ amCatchmentAnalyst <- function(
   #
   # get stat
   #
-  if (!isEmpty) {
+  if (!pbzIsEmpty) {
     # After cumulated sum, order was not changed, we can use tail/head to extract min max
     popTravelTimeMax <- tail(pbz, n = 1)$cumSum
     # popTravelTimeMin <- head(pbz,n=1)$cumSum
@@ -969,18 +918,15 @@ amCatchmentAnalyst <- function(
         )
       }
     } else {
-      amMsg(
-        type = "warning",
-        text = paste(
-          "amCatchmentAnalyst. Catchment type not found.",
-          "facilityId:", facilityId,
-          "facilityCapacity:", facilityCapacity,
-          "popInner:", popInner,
-          "popOuter:", popOuter,
-          "popTravelTimeMin:", popTravelTimeMin,
-          "popTravelTimeMax:", popTravelTimeMax
-        )
-      )
+      warning(paste(
+        "amCatchmentAnalyst. Catchment type not found.",
+        "facilityId:", facilityId,
+        "facilityCapacity:", facilityCapacity,
+        "popInner:", popInner,
+        "popOuter:", popOuter,
+        "popTravelTimeMin:", popTravelTimeMin,
+        "popTravelTimeMax:", popTravelTimeMax
+      ))
     }
 
     if (debug_print) print("################ CATCHMENT TYPE")
@@ -1222,17 +1168,17 @@ amGetRasterStat <- function(
 
 #' amRasterToShape
 #'
-#' Extract area from raster and create a shapefile or
+#' Extract area from raster and create a vector or
 #' append to it if the files already exist.
 #'
 #' @param idField Name of the facility id column.
 #' @param idPos String id currently processed.
 #' @param append Append to existing.
 #' @param inputRaster Raster to export
-#' @param outCatch Name of shapefile layer
+#' @param outCatch Name of vector layer
 #' @param listColumnsValue Alternative list of value to
 #'        put into catchment attributes. Must be a named list.
-#' @return Shapefile path
+#' @return Vector path
 #' @export
 amRasterToShape <- function(
   pathToCatchment,
@@ -1335,7 +1281,7 @@ amRasterToShape <- function(
   # rewrite
   dbWriteTable(dbCon, tmpVectDissolve, dbRec, overwrite = TRUE)
 
-  # export to shapefile.
+  # export to vector (GPKG).
   execGRASS("v.out.ogr",
     input = tmpVectDissolve,
     output = outPath,
