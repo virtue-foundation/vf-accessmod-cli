@@ -89,7 +89,7 @@ amNoDataCheck <- function(val = NULL) {
       return(TRUE)
     }
     v1 <- val[[1]]
-    if (isTRUE(v1 %in% config$defaultNoData) || is.na(v1) || nchar(v1, allowNA = TRUE) == 0) {
+    if (is.na(v1) || nchar(v1, allowNA = TRUE) == 0) {
       return(TRUE)
     }
   }

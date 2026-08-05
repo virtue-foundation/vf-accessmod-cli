@@ -8,7 +8,6 @@
 # (R's lazy evaluation means sourcing functions.R doesn't need this,
 # only the test calls that exercise those branches do.)
 config <- list(
-  defaultNoData = NULL,
   vectorKey = "cat",
   dataClassList = list(
     "1" = list(
