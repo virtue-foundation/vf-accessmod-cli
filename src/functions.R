@@ -163,7 +163,7 @@ rmLayerIfExists <- function(filter = "", type = c("vector", "raster")) {
         execGRASS("g.remove",
           flags = c("b", "f"),
           type = type,
-          pattern = paste0(filter, sep = "|")
+          pattern = filter
         )
       }
     },

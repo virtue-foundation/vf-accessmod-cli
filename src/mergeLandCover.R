@@ -467,4 +467,6 @@ if (all(is_loaded(raster_stack))) {
   if (debug_store) {
     r_merged_lcv <<- read_RAST(merged_lcv_name)
   }
+
+  amCleanupTmpLayers()
 }
