@@ -9,6 +9,7 @@
 # only the test calls that exercise those branches do.)
 config <- list(
   defaultNoData = NULL,
+  vectorKey = "cat",
   dataClassList = list(
     "1" = list(
       type = "raster", colors = "#000000", importable = TRUE, internal = FALSE,
@@ -215,4 +216,15 @@ test_that("amClassListInfo retrieves class info", {
 test_that("amClassListInfo returns NULL for NULL class", {
   # No else branch; the last expression (if) evaluates to NULL when FALSE
   expect_null(amClassListInfo(NULL))
+})
+
+# ---- amFacilitiesSubset ----
+
+test_that("amFacilitiesSubset errors when no facilities are selected", {
+  tbl <- data.frame(cat = c(1, 2, 3), active = c(0, 0, 0))
+  # All zeros: idHfSelect is empty, so the SQL IN () branch must not run.
+  expect_error(
+    amFacilitiesSubset(tbl, "facilities", "active"),
+    "No facilities selected"
+  )
 })

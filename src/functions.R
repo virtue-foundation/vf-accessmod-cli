@@ -462,6 +462,13 @@ amFacilitiesSubset <- function(tableFacilities, inputFacilities, select_col) {
     idHfSelect <- idHfSelect[!is.na(idHfSelect)]
     idHfNotSelect <- idHfNotSelect[!is.na(idHfNotSelect)]
 
+    # Guard against an empty IN list, which would build invalid SQL
+    # ("cat IN ()") and crash v.extract. Checked after NA removal so a
+    # selection whose ids are all NA is caught too.
+    if (length(idHfSelect) == 0) {
+      stop("No facilities selected in the subset column")
+    }
+
     if (hasMoreSelect) {
       qSql <- sprintf(
         '"%s NOT IN (%s)"',
