@@ -184,7 +184,10 @@ COPY pyproject.toml uv.lock /build/
 
 WORKDIR /build
 
-RUN uv pip install --system --no-cache .
+# PEP 668: 26.04's system python is externally-managed, so install into a
+# venv (not --system) and put it on PATH for the app image + test job.
+RUN uv venv /opt/venv && \
+    uv pip install --python /opt/venv/bin/python --no-cache .
 
 # appended to existing ones.
 ENV AM5_PORT_HTTP=5000 \
@@ -213,7 +216,8 @@ ENV GRASS_INSTALLATION="$GISBASE"
 ENV LD_LIBRARY_PATH="$GISBASE/lib"
 ENV GRASS_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 ENV PYTHONPATH="$GISBASE/etc/python:$PYTHONPATH"
-ENV PATH=$GISBASE/bin:$GISBASE/scripts:$PATH
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH=/opt/venv/bin:$GISBASE/bin:$GISBASE/scripts:$PATH
 
 RUN mkdir -p "$GISDBASE"
 
