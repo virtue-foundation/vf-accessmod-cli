@@ -7,6 +7,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
         bzip2 \
         gettext \
         libicu78 \
+        libfftw3-double3 \
         libjpeg-turbo8 \
         libjsoncpp26 \
         libgdal38 \
@@ -64,7 +65,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
       build-essential \
       libbz2-dev \
       libcairo2-dev \
-      fftw-dev \
+      libfftw3-dev \
       libfreetype-dev \
       libgdal-dev \
       g++ \
@@ -101,13 +102,11 @@ ENV GRASS_CONFIG="\
       --without-x \
       --without-pdal \
       --without-postgres \
-      --without-wxwidgets \
       --without-openmp \
       --without-freetype \
       --without-opengl \
       --without-nls \
       --without-mysql \
-      --without-ffmpeg \
       --without-odbc \
       "
 
