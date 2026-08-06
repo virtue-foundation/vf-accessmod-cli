@@ -1,35 +1,30 @@
-ARG GRASS_VERSION=7.8.7
+ARG GRASS_VERSION=8.4.2
 
-FROM ubuntu:22.04 as main
+FROM ubuntu:26.04 AS main
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y \
         bash \
         bzip2 \
-        fftw2 \
         gettext \
-        gnutls-bin \
-        libexecs0 \
-        libicu70 \
+        libicu78 \
+        libfftw3-double3 \
         libjpeg-turbo8 \
-        libjsoncpp25 \
-        libgdal30 \
-        libgeos3.10.2 \
+        libjsoncpp26 \
+        libgdal38 \
+        libgeos3.14.1 \
         libgeotiff5 \
         liblaszip8 \
-        libncurses5 \
+        libncurses6 \
         libopenblas0 \
         libopenjp2-7 \
-        libpng16-16 \
+        libpng16-16t64 \
         libpq5 \
         libtool \
-        libtiff5 \
+        libtiff6 \
         libunwind8 \
         locales \
-        musl \
-        musl-tools \
         python3 \
         python3-pip \
-        python3-six \
 	r-base \
 	r-cran-remotes \
 	sqlite3 \
@@ -37,14 +32,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
 	&& \
     rm -rf /var/lib/apt/lists/*
 
-FROM main as build_r_env
+FROM main AS build_r_env
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y \
       libgdal-dev \
       && \
     rm -rf /var/lib/apt/lists/*
 
-FROM build_r_env as build_grass
+FROM build_r_env AS build_grass
 
 ARG GRASS_VERSION
 
@@ -70,7 +65,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
       build-essential \
       libbz2-dev \
       libcairo2-dev \
-      fftw-dev \
+      libfftw3-dev \
       libfreetype-dev \
       libgdal-dev \
       g++ \
@@ -85,7 +80,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -
       libopenblas-dev \
       python3-dev \
       python3-setuptools \
-      python3-numpy-dev \
+      python3-numpy \
       libsqlite3-dev \
       libtiff-dev \
       libzstd-dev \
@@ -107,13 +102,11 @@ ENV GRASS_CONFIG="\
       --without-x \
       --without-pdal \
       --without-postgres \
-      --without-wxwidgets \
       --without-openmp \
       --without-freetype \
       --without-opengl \
       --without-nls \
       --without-mysql \
-      --without-ffmpeg \
       --without-odbc \
       "
 
@@ -135,25 +128,24 @@ RUN echo "Configure and compile GRASS" && \
     fi &&\
     LDFLAGS="-s -Wl,--no-undefined -lblas" &&\
     LD_LIBRARY_PATH="/usr/local/lib" && \
-    CXXFLAGS="$MYCXXFLAGS" &&\
     ./configure $GRASS_CONFIG && \
     make -j $(nproc --all) && \
     make install && \
-    ldconfig /etc/ld.so.conf.d && \
     cd r.walk.accessmod && \
-    make MODULE_TOPDIR=/usr/local/grass78
+    make MODULE_TOPDIR="$(grass --config path)"
 
 # Reduce the image size - Remove unnecessary grass files
-RUN cp /usr/local/grass78/gui/wxpython/xml/module_items.xml module_items.xml; \
-    rm -rf /usr/local/grass78/demolocation; \
-    rm -rf /usr/local/grass78/fonts; \
-    rm -rf /usr/local/grass78/gui; \
-    rm -rf /usr/local/grass78/share; \
-    mkdir -p /usr/local/grass78/gui/wxpython/xml/; \
-    mv module_items.xml /usr/local/grass78/gui/wxpython/xml/module_items.xml; \
+RUN G="$(grass --config path)"; \
+    cp "$G/gui/wxpython/xml/module_items.xml" module_items.xml; \
+    rm -rf "$G/demolocation"; \
+    rm -rf "$G/fonts"; \
+    rm -rf "$G/gui"; \
+    rm -rf "$G/share"; \
+    mkdir -p "$G/gui/wxpython/xml/"; \
+    mv module_items.xml "$G/gui/wxpython/xml/module_items.xml"; \
     apt-get remove -y grass-dev
 
-FROM build_r_env as build_r_packages
+FROM build_r_env AS build_r_packages
 
 # Fix for locales
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
@@ -166,10 +158,11 @@ ENV LC_ALL en_US.UTF-8
 COPY --from=build_grass /usr/local/bin/grass* /usr/local/bin/grass
 COPY --from=build_grass /usr/local/grass* /usr/local/grass/
 
-# Link grass /usr/local/grass <-> /usr/local/grass78
+# Link grass /usr/local/grass <-> /usr/local/grass84
 RUN ln -sf /usr/local/grass `grass --config path`
 
 RUN echo "\
+options(repos = c(CRAN = \"https://packagemanager.posit.co/cran/2024-12-31\")); \
 install = function(pkg){ \
   install.packages(pkg); \
   tryCatch(library(pkg,character.only=T), \
@@ -191,7 +184,10 @@ COPY pyproject.toml uv.lock /build/
 
 WORKDIR /build
 
-RUN uv pip install --system --no-cache .
+# PEP 668: 26.04's system python is externally-managed, so install into a
+# venv (not --system) and put it on PATH for the app image + test job.
+RUN uv venv /opt/venv && \
+    uv pip install --python /opt/venv/bin/python --no-cache .
 
 # appended to existing ones.
 ENV AM5_PORT_HTTP=5000 \
@@ -220,7 +216,8 @@ ENV GRASS_INSTALLATION="$GISBASE"
 ENV LD_LIBRARY_PATH="$GISBASE/lib"
 ENV GRASS_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 ENV PYTHONPATH="$GISBASE/etc/python:$PYTHONPATH"
-ENV PATH=$GISBASE/bin:$GISBASE/scripts:$PATH
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH=/opt/venv/bin:$GISBASE/bin:$GISBASE/scripts:$PATH
 
 RUN mkdir -p "$GISDBASE"
 
