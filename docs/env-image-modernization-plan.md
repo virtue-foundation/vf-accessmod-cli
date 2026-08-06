@@ -1,6 +1,6 @@
 # Env image modernization plan
 
-Goal: bring `build-env-image/` up to — and ahead of — AccessMod 5.9.1's dependency baseline. Two stages, split so the remote build is the gate.
+Goal: bring `build-env-image/` up to — and ahead of — AccessMod 5.9.1's dependency baseline. Two stages, split so the remote build is the gate. **Stage 1 is done** (commit `097f563`, merged to `main`); Stage 2 is pending.
 
 Constraint: **no local build.** GRASS/R can't run on the bare host — everything is verified by pushing a branch and watching GitHub Actions. So stage 1's definition of done is "the `Env Dependencies` + `Docker` + `Tests` workflows go green"; we deliberately do **not** touch R source in stage 1.
 
@@ -28,11 +28,14 @@ Soname / package-name bumps in 26.04 (verify each at edit time from the 26.04 Pa
 | `libicu70` | `libicu78` | ICU 78.2 |
 | `libpng16-16` | `libpng16-16t64` | 24.04+ t64 time64 transition |
 | `libtiff5` | `libtiff6` | `libtiff5` not found in 26.04 |
-| `libexecs0` | `libexecs1` | `libexecs0` not found in 26.04 |
+| `libexecs0` | — dropped | orphan; zero reverse deps in 26.04 (nothing depends on libexecs) |
 | `libjsoncpp25` | `libjsoncpp26` | |
 | `libncurses5` | `libncurses6` / `libtinfo6` | 26.04 ships ncurses6 |
+| `fftw2` | — dropped | dead; GRASS uses FFTW3 (`libfftw3-double3`, pulled transitively by `libgdal38`) |
+| `gnutls-bin` | — dropped | CLI tools only; gnutls runtime lib stays via `libgdal38`→`libcurl3t64-gnutls` |
+| (new) | `libfftw3-double3` | GRASS `--with-fftw` runtime (FFTW3, not FFTW2) |
 
-The table above is verified against `packages.ubuntu.com` for 26.04 (Resolute) and 22.04 (jammy), but treat every soname as a build-time assertion — a wrong name fails immediately at `apt-get install` and names the missing package.
+Verified against the 26.04 (Resolute) and 22.04 (jammy) Packages indexes at edit time, then confirmed by the green GHA build. Where this plan's §1.1 prose disagreed with the table (`libgdal36` vs `libgdal38`, `libicu80` vs `libicu78`), **the table was right**.
 
 26.04 doesn't just match upstream — it's ahead on GDAL/GEOS/PROJ, and it's the only base that hits R 4.5 + modern geo libs with zero external repos. Accepted tradeoff: bigger blast radius (libc, python3, every system lib jumps a generation) — explicitly accepted by the team.
 
@@ -51,58 +54,44 @@ We build **GRASS 8.4.2 from source** (matching apt's `grass-dev` 8.4.2) so the p
 
 ---
 
-## Stage 1 — make the remote build green (Dockerfile only)
+## Stage 1 — DONE (commit `097f563`, merged to `main`)
 
-No R source changes. The image must build and all three workflows (`docker-publish-environment.yml`, `docker-publish.yml`, `test.yml`) must pass on the pushed branch.
+The env image builds green on 26.04 and is published to `:main`. Record of what shipped — including two fixes the original plan didn't anticipate (FFTW3, PEP 668).
 
-### 1.1 Rebase on `ubuntu:26.04` + bump GRASS to 8.4.2 (source build)
+### Rebase + GRASS 8.4.2 source build
 
-Single coordinated change to the top of the Dockerfile:
+- `FROM ubuntu:22.04` → `26.04`; `ARG GRASS_VERSION` 7.8.7 → 8.4.2; lowercase `as` → `AS` on every `FROM`.
+- All 9 `grass78` paths → `grass84` via `$(grass --config path)` (self-heals on future bumps); the existing `ln -sf /usr/local/grass \`grass --config path\`` kept. Verified against 8.4.2's `Install.make` — `make install` puts a single `grass` binary in `/usr/local/bin` (no `grass84` twin), so the `COPY /usr/local/bin/grass*` wildcard stays single-match.
+- Runtime sonames bumped per the 26.04 Packages index (see table above). `r-base`→R 4.5.2, `libgdal-dev`→GDAL 3.12.2, `libgeos-dev`→GEOS 3.14.1, `libproj-dev`→PROJ 9.7.1, gcc 15.2 — all native apt, no PPAs.
 
-- `FROM ubuntu:22.04 as main` → `FROM ubuntu:26.04 AS main` (also fix the deprecated lowercase `as`).
-- `ARG GRASS_VERSION=7.8.7` → `8.4.2`.
-- Replace **all 9** `/usr/local/grass78` occurrences with `/usr/local/grass84` — `grep -c 'grass78'` in the Dockerfile returns 9: the `make MODULE_TOPDIR=`, the `cp module_items.xml`, the `rm -rf demolocation/fonts/gui/share` lines, the `mkdir -p .../gui/wxpython/xml`, the `mv module_items.xml`, and a trailing comment. (The plan originally said "four" — that was an undercount.) Better still, prefer `$(grass --config path)` dynamically where the surrounding step allows it, so the path stops being hardcoded. The `ln -sf /usr/local/grass \`grass --config path\`` already follows `grass --config path` and self-heals — keep it.
-- Update the runtime apt package names to 26.04's versions. Several 22.04-specific pins change: `libgdal30` → `libgdal36` (26.04's soname), `libgeos3.10.2` → `libgeos3.14.1` (or just `libgeos-c1` runtime), `libjsoncpp25` → newer `libjsoncppXX`, `libicu70` → `libicu80` (26.04 ships ICU 80). Verify exact names from the 26.04 Packages index at edit time — don't guess sonames.
-- `r-base` now pulls R 4.5.2, `libgdal-dev` pulls GDAL 3.12.2, `libgeos-dev` pulls GEOS 3.14.1, `libproj-dev` pulls PROJ 9.7.1 — all from native apt, **no PPAs added**.
-- Confirm `r.walk.accessmod`'s `Makefile` builds against GRASS 8.4.2 headers (upstream uses the same Makefile against 8.3.2; 8.4.2 is API-compatible — but the GHA build is the proof).
+### FFTW3 migration (unplanned — required by the build)
 
-### 1.2 Drop the 22.04-specific locale/package workarounds
+GRASS 8.4's `fft.c` needs **FFTW3**, not FFTW2. Under gcc-15 the old `fftw2`/`fftw-dev` path errored and cascaded into `-lgrass_gmath.8.4` link failures. Shipped: build `fftw-dev` → `libfftw3-dev`; runtime add `libfftw3-double3`; drop `fftw2` (zero reverse deps in the archive). `--with-fftw` now links FFTW3.
 
-Review and remove anything that existed only because of 22.04's age:
+### GRASS_CONFIG changes
 
-- The `musl` / `musl-tools` apt installs — these were for cross-arch/cairo edge cases on 22.04; verify whether 26.04's toolchain still needs them (likely not, but keep if the build complains).
-- `libncurses5` → 26.04 ships `libncurses6`/`libtinfo6`; update or drop.
-- The `python3-six` / `python3-numpy-dev` installs are bare package names (no version pins to update) — 26.04's python3 is much newer; `python3-dev` + `python3-numpy` should suffice. Re-confirm against the build.
+- `--without-wxwidgets` and `--without-ffmpeg` **removed** — the build wouldn't link under gcc-15/8.4.2 with them. Net effect is near-nil (configure auto-detects wxwidgets dev, which isn't installed, and skips; we run headless via `rgrass` regardless), but the `gui/wxpython/xml/module_items.xml` preservation in the size-reduction step now corresponds to real built artifacts.
+- Rest of the flag block unchanged (`--with-proj-share`, `--with-cairo`, `--without-{x,pdal,postgres,openmp,freetype,opengl,nls,mysql,odbc}`); all still valid in 8.4.2.
 
-### 1.3 R package install robustness
+### Dead-weight / no-op cleanup
 
-`build_r_packages.sh` currently `Rscript -e 'install("<pkg>")'` with no repo pinned and `quit('no',status=1)` only via the `.Rprofile` tryCatch. On R 4.5 + fresh CRAN this can flake. Two cheap fixes:
+Dropped from the runtime stage: `libexecs0` (orphan — zero reverse deps; **not** swapped to `libexecs1` as the table originally speculated), `musl`/`musl-tools`/`python3-six` (22.04-era, unneeded on 26.04), `gnutls-bin` (CLI tools only; gnutls lib stays via `libgdal38`→`libcurl3t64-gnutls`). Build stage `python3-numpy-dev` → `python3-numpy`. Removed the no-op `ldconfig /etc/ld.so.conf.d` (conf.d is a config dir, not a lib dir; GRASS libs resolve via `GRASS_LD_LIBRARY_PATH`) and the dead `CXXFLAGS="$MYCXXFLAGS"` (undefined var → configure now uses its default CXXFLAGS).
 
-- Pin a CRAN snapshot via `.Rprofile` `options(repos=...)` to a dated Posit Pak URL (upstream does this with `R_PACKAGES_DATE=2024-12-31`). Reproducible + matches upstream's known-good set.
-- Keep the existing per-package loop; just feed it the pinned repo.
+### R package install robustness
 
-No change to `requirements_r.txt` contents (space-separated, don't reformat — AGENTS.md calls this out).
+`.Rprofile` now pins `options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2024-12-31"))` (upstream's known-good snapshot, compatible with R 4.5.2). Per-package loop and `requirements_r.txt` contents/format unchanged.
 
-### 1.4 uv digest pin
+### PEP 668 / uv venv (unplanned — required by the build)
 
-`COPY --from=ghcr.io/astral-sh/uv@sha256:93b61e21...` — leave as-is unless the build breaks; bumping is a deliberate act (the comment says so). Only revisit if the pinned image is unreachable from GHA.
+26.04's system Python 3.14 is externally-managed (PEP 668), so `uv pip install --system` (fine on 22.04's Python 3.10) now exits 2. Fix: `uv venv /opt/venv && uv pip install --python /opt/venv/bin/python --no-cache .`, plus `ENV VIRTUAL_ENV=/opt/venv` and `PATH=/opt/venv/bin:$GISBASE/bin:$GISBASE/scripts:$PATH`. The app image inherits the venv via ENV (the `ENTRYPOINT flask run` resolves via PATH, so venv `flask` is found); `test.yml`'s `uv pip install --system pytest` → `uv pip install --python /opt/venv/bin/python pytest` to match. **uv digest pin unchanged** (deliberate).
 
-### 1.5 CI path-filter sanity
+### CI (was 1.5)
 
-`docker-publish-environment.yml` already rebuilds the env image on `build-env-image/**` / `requirements_r.txt` / `pyproject.toml` / `uv.lock` pushes to `main`. To exercise it from a branch, either:
+Env workflow triggered; image built and pushed green to `ghcr.io/.../vf-accessmod-cli_env:main`.
 
-- push to a `dev-*` branch and temporarily widen the env workflow's `branches:` + add `pull_request:` (revert before merge), **or**
-- use `workflow_dispatch` on `main` after merging (riskier — bakes the image tag).
+### Stage 1 result
 
-**Prefer the `dev-*` + temporary trigger widen**, so the env image builds on the branch. Note: `test.yml`/`docker-publish.yml` `container:` (and the app Dockerfile `FROM`) the published `:main` env image, so until the new env image is actually pushed to `:main`, those jobs run against the **old** env. Plan for this in stage-1 validation (below).
-
-### Stage 1 validation (on the pushed branch)
-
-1. `Env Dependencies` workflow builds the env image and pushes to `ghcr.io/.../vf-accessmod-cli_env:main` (or a tag). **Green = Dockerfile compiles, GRASS 8 builds, R 4.5 installs, R packages install, uv pip install works.**
-2. Because the app/test workflows `FROM`/`container:` the *published* `:main` env image, they'll only reflect the new env **after** the env image is pushed. So validate the app image + tests in a follow-up push once `:main` is updated, or temporarily point the app Dockerfile / test container at the newly-pushed env tag.
-3. Once green on `:main` for env, re-trigger `Docker` + `Tests` — `r-parse-check` (parses all `src/*.R` with the new R 4.5) and `pytest`/R testthat must pass. **Expect the R parse check to pass** (we're not changing R syntax), and `test_job_runner` / `test_file_path_handler` / `test_allowed_file` (Python, env-independent) to pass. The R testthat unit tests (`functions.R` helpers, no GRASS) should pass; `tests/integration/test_grass_session.R` will run **inside** the new env container — this is our first signal whether GRASS 8 + `initGRASS()` still works. If integration fails, that's stage 2's input, not a stage 1 blocker (the *image* still built).
-
-**Stage 1 done = env image published green to `:main`, and Python tests green on that `:main` env.** (Per the sequencing note above, this implies the env image is already on `:main`; the Python tests are env-independent and will pass either way, but validating them against the new `:main` is the clean signal.) GRASS-session integration failures are expected and deferred to stage 2.
+Env image green on `:main`: Dockerfile compiles, GRASS 8.4.2 builds, R 4.5.2 + packages install, venv uv install works, Python tests pass on the new `:main` env. **`tests/integration/test_grass_session.R` is Stage 2's input** — its status under GRASS 8 + `initGRASS()` is not yet verified.
 
 ---
 
@@ -153,13 +142,14 @@ GRASS 8 + modern `rgrass` (the renamed `rgrass` package started at 0.2-0 after `
 - Switching base OS to Alpine (upstream did; we stay on Ubuntu — no musl/libc-compat churn, and 26.04 gives us the versions natively anyway).
 - Shipping the full upstream R runtime package set (`shiny`, `leaflet`, `sf`, `terra`, etc.) — the CLI Flask+`Rscript` design only needs the tooling deps already in `requirements_r.txt`. Revisit only if a stage-2 entrypoint turns out to need one.
 - `modules/r.walk.accessmod` / `patches/raster` source — identical to upstream 5.9.1, no porting.
-- uv digest bump — pinned deliberately.
+- uv digest bump — pinned deliberately (the venv approach was the chosen PEP 668 fix; uv itself unchanged).
+- `r-base` → `r-base-core` + `r-base-dev` swap — would drop the ~15 `r-recommended` r-cran-* packages that `r-base` hard-depends on but `requirements_r.txt` doesn't need. Offered, not done; safe follow-up if image size matters.
 - `requirements_r.txt` format — space-separated, don't reformat (AGENTS.md).
 
 ## Risk summary
 
-- **Highest risk:** GRASS 7→8 `initGRASS`/`gmeta` behavior change breaking `init_session.R`. Mitigation: stage 2 exists exactly for this; the image building (stage 1) doesn't depend on it.
-- **Medium risk:** 26.04 apt package soname/name drift (`libgdal30`→`libgdal36`, `libicu70`→`libicu80`, `libncurses5`→`6`, etc.) — any wrong guess fails the build immediately at `apt-get install`. Mitigation: verify exact names from the 26.04 Packages index at edit time; the build error names the missing package.
+- **Highest risk (stage 2):** GRASS 7→8 `initGRASS`/`gmeta` behavior change breaking `init_session.R`. The image builds without it; `tests/integration/test_grass_session.R` in GHA is the gate.
+- **Resolved (stage 1):** 26.04 apt soname/name drift — verified against the 26.04 Packages index and confirmed by the green build. Correct names were `libgdal38` (not `libgdal36`), `libicu78` (not `libicu80`), `libncurses6`, `libtiff6`, `libpng16-16t64`, `libjsoncpp26`. Two unplanned build fixes also landed: the FFTW3 migration and the PEP 668 uv venv (see Stage 1).
 - **Low risk:** patched `r.reclass` API drift vs GRASS 8.4.2 — patches are full-file replacements using stable `Rast_*` APIs, so near-zero; if it fails, fast build-time feedback, regenerate the three files against 8.4.2 source.
 - **Low risk:** R 4.5 vs 4.1 syntax in our own R (we don't use 4.5-only syntax; parse-check guards it).
 - **Low risk:** GDAL 3.12 behavior diffs in any raster I/O our entrypoints do via `rgrass` (not `terra`/`sf` directly in the CLI path). Mitigation: integration test.
