@@ -7,5 +7,3 @@ lintr
 testthat
 covr
 RSQLite
-terra
-sf
