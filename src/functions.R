@@ -1320,6 +1320,18 @@ open_startup_logs <- function(name) {
   sink(paste0("../logs/", name, ".log"), append = FALSE, split = TRUE, type = "output")
   .errCon <- file(paste0("../logs/", name, "_error.log"), open = "wt")
   sink(.errCon, type = "message")
+  # sink(type="message") captures message()/warning() but NOT top-level
+  # stop() errors -- R prints those to C-level stderr, which app.py does not
+  # capture, so error_log.txt stays silently empty. Route uncaught errors
+  # through message() (which the sink does capture) and quit non-zero so
+  # JobRunner still marks the job failed.
+  options(error = function(e) {
+    message("ERROR: ", conditionMessage(e))
+    if (!is.null(e$call)) {
+      message("Call: ", paste(deparse(e$call), collapse = " "))
+    }
+    quit(save = "no", status = 1)
+  })
   invisible(.errCon)
 }
 
