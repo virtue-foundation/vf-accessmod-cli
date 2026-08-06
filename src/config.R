@@ -1,4 +1,6 @@
 require(rgrass)
+require(terra)
+require(sf)
 require(tools)
 require(jsonlite)
 require(DBI)

@@ -8,3 +8,4 @@ testthat
 covr
 RSQLite
 terra
+sf
