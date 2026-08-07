@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container: ghcr.io/virtue-foundation/vf-accessmod-cli_env:main
     steps:
       - uses: actions/checkout@v4
