@@ -539,6 +539,17 @@ amInitPopResidual <- function(inputPop = NULL,
     expression = expPopResidual,
     flags = "overwrite"
   )
+
+  # execGRASS does not raise on a non-zero GRASS exit, so a failed r.mapcalc
+  # would silently leave r_pop_resid uncreated and the coverage loop would
+  # then operate on a missing map. Assert the map actually exists so the
+  # failure surfaces as a logged R error instead of an empty output raster.
+  if (!amRastExists(outputPopResidual)) {
+    stop(
+      "amInitPopResidual: r.mapcalc failed to create '", outputPopResidual,
+      "'. Expression: ", expPopResidual
+    )
+  }
 }
 
 

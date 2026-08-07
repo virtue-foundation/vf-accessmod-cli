@@ -1108,10 +1108,16 @@ amCreateFrictionMap <- function(tbl, mapMerged, mapFriction, mapResol) {
 ###### Facilities tools
 
 amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
+  # v.what.rast defaults to comma-separated output under GRASS 8 (main.c
+  # overrides G_OPT_F_SEP's standard "pipe" default). The parser below reads
+  # sep="|", so request pipe explicitly -- version-agnostic, restores the
+  # 7.8 output format. Without this, comma output parses as one column,
+  # every row is filtered out, and the facilities table silently empties.
   data <- execGRASS("v.what.rast",
     map = inputPoint,
     raster = inputRaster,
     flags = "p",
+    separator = "pipe",
     intern = TRUE
   )
 
