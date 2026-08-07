@@ -105,7 +105,7 @@ amCapacityAnalysis <- function(
     # order by given field value, take index field values
     #
 
-    ord <- order(tableFacilities[orderField], decreasing = hfOrderSorting == "hfOrderDesc")
+    ord <- order(tableFacilities[[orderField]], decreasing = hfOrderSorting == "hfOrderDesc")
     orderResult <- tableFacilities[ord, c(hfIdx, orderField)]
   } else {
     #
@@ -459,11 +459,6 @@ amCapacityAnalysis <- function(
       outName = outputHfCatchment
     )
   }
-
-  #
-  #  create final pop-resid raster result for output
-  #
-  execGRASS("g.copy", raster = paste0(outputPopResidual, ",r_pop_resid"))
 
   #
   # finish process
