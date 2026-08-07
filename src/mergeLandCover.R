@@ -456,9 +456,9 @@ if (all(is_loaded(raster_stack))) {
   execGRASS("r.out.gdal",
     parameters = list(
       input = merged_lcv_name,
-      output = paste0(output_dir, "/", merged_lcv_name, ".img"),
-      createopt = "COMPRESSED=YES",
-      format = "HFA"
+      output = paste0(output_dir, "/", merged_lcv_name, ".tif"),
+      createopt = "COMPRESS=LZW",
+      format = "GTiff"
     ),
     flags = c("overwrite", "f", "c", "m")
   )
