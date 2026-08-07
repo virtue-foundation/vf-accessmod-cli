@@ -416,10 +416,10 @@ execGRASS("r.out.gdal",
     input = output_list$popResidualRaster,
     output = paste0(
       output_dir, "/", input_region,
-      "_pop_resid_", input_f_subset_col, ".img"
+      "_pop_resid_", input_f_subset_col, ".tif"
     ),
-    createopt = "COMPRESSED=YES",
-    format = "HFA"
+    createopt = "COMPRESS=LZW",
+    format = "GTiff"
   ),
   flags = c("overwrite", "f", "c", "m")
 )

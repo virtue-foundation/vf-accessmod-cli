@@ -254,9 +254,9 @@ args_traveltime <- switch(analysis_type,
   )
 )
 
-filename_speed_friction_raster <- paste0(paste(output_region, bln_speed_or_friction, sep = "_"), ".img")
+filename_speed_friction_raster <- paste0(paste(output_region, bln_speed_or_friction, sep = "_"), ".tif")
 filename_speed_friction_report <- paste(output_region, bln_speed_or_friction, "report.txt", sep = "_")
-filename_traveltime_raster <- paste0(paste(output_region, "travel_time", facilities_subset, sep = "_"), ".img")
+filename_traveltime_raster <- paste0(paste(output_region, "travel_time", facilities_subset, sep = "_"), ".tif")
 filename_traveltime_report <- paste(output_region, facilities_subset, "travel_time.txt", sep = "_")
 dir_output_speed_friction <- paste0(output_dir, "/")
 dir_output_traveltime <- paste0(output_dir, "/")
@@ -267,8 +267,8 @@ execGRASS("r.out.gdal",
   parameters = list(
     input = name_speed_friction_raster,
     output = paste(dir_output_speed_friction, filename_speed_friction_raster, sep = ""),
-    createopt = "COMPRESSED=YES",
-    format = "HFA"
+    createopt = "COMPRESS=LZW",
+    format = "GTiff"
   ),
   flags = c("overwrite", "f", "c", "m")
 )
@@ -284,8 +284,8 @@ execGRASS("r.out.gdal",
   parameters = list(
     input = "r_traveltime",
     output = paste(dir_output_traveltime, filename_traveltime_raster, sep = ""),
-    createopt = "COMPRESSED=YES",
-    format = "HFA"
+    createopt = "COMPRESS=LZW",
+    format = "GTiff"
   ),
   flags = c("overwrite", "f", "c", "m")
 )
