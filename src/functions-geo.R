@@ -62,6 +62,12 @@ amCapacityAnalysis <- function(
   #
   # Create friction / Speed map
   #
+  if (debug_print) {
+    print(sprintf(
+      "[debug] amCapacityAnalysis: START preAnalysis=%s typeAnalysis=%s",
+      preAnalysis, typeAnalysis
+    ))
+  }
   if (!isTRUE(preAnalysis)) {
     switch(typeAnalysis,
       "anisotropic" = {
@@ -70,6 +76,12 @@ amCapacityAnalysis <- function(
           inputMerged,
           outputSpeed
         )
+        if (debug_print) {
+          print(sprintf(
+            "[debug] amCapacityAnalysis: after amCreateSpeedMap, '%s' exists=%s",
+            outputSpeed, amRastExists(outputSpeed)
+          ))
+        }
         debug_raster_report(outputSpeed)
       },
       "isotropic" = {
@@ -172,6 +184,13 @@ amCapacityAnalysis <- function(
   )
 
   orderId <- orderResult[[hfIdx]]
+  if (debug_print) {
+    print(sprintf(
+      "[debug] amCapacityAnalysis: orderId length=%d, values=%s",
+      length(orderId), paste(orderId, collapse = ",")
+    ))
+  }
+  if (debug_print) print(str(orderResult))
 
 
   # temp. variable
@@ -186,12 +205,19 @@ amCapacityAnalysis <- function(
 
 
   # create residual population
+  if (debug_print) print("[debug] amCapacityAnalysis: calling amInitPopResidual")
   amInitPopResidual(
     inputPopResidual = inputPop,
     inputFriction = outputFriction,
     inputSpeed = outputSpeed,
     outputPopResidual = outputPopResidual
   )
+  if (debug_print) {
+    print(sprintf(
+      "[debug] amCapacityAnalysis: after amInitPopResidual, '%s' exists=%s",
+      outputPopResidual, amRastExists(outputPopResidual)
+    ))
+  }
 
   debug_raster_report(map = outputPopResidual)
 
@@ -214,6 +240,7 @@ amCapacityAnalysis <- function(
   #
   # if (debug_print) print("facility processing order:")
   # if (debug_print) print(orderId)
+  if (debug_print) print(sprintf("[debug] amCapacityAnalysis: entering facility loop, n=%d", length(orderId)))
 
   for (i in orderId) {
     print(paste("Examining facility", i))
@@ -534,11 +561,12 @@ amInitPopResidual <- function(inputPop = NULL,
     )
   }
 
-  execGRASS(
+  mapcalcRes <- execGRASS(
     "r.mapcalc",
     expression = expPopResidual,
     flags = "overwrite"
   )
+  print(sprintf("[debug] amInitPopResidual: r.mapcalc exit=%s; expr=%s", mapcalcRes, expPopResidual))
 
   # execGRASS does not raise on a non-zero GRASS exit, so a failed r.mapcalc
   # would silently leave r_pop_resid uncreated and the coverage loop would
