@@ -1035,19 +1035,12 @@ amCreateSpeedMap <- function(tbl, mapMerged, mapSpeed) {
   #
   # Reclass the merged landcover
   #
-  reclassRes <- execGRASS("r.reclass",
+  execGRASS("r.reclass",
     input = mapMerged,
     output = mapSpeed,
     rules = tmpFile,
     flags = "overwrite"
   )
-  # ponytail: debug — patched r.reclass under GRASS 8 may exit 0 yet write no
-  # map; execGRASS does not raise on a clean exit, so capture the return code
-  # and verify the output exists. Remove once §2.2 r.reclass is confirmed.
-  print(sprintf(
-    "[debug] amCreateSpeedMap: r.reclass exit=%s; output '%s' exists=%s",
-    reclassRes, mapSpeed, amRastExists(mapSpeed)
-  ))
   unlink("temp", recursive = TRUE)
 }
 
@@ -1125,10 +1118,6 @@ amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
     flags = "p",
     intern = TRUE
   )
-  print(sprintf(
-    "[debug] amGetRasterValueAtPoint: v.what.rast returned %d lines; head=%s",
-    length(data), paste(head(data, 3), collapse = " | ")
-  ))
 
   if (isEmpty(data)) {
     tbl <- data.frame(V1 = character(0), v2 = character(0))
@@ -1228,9 +1217,7 @@ amValidateFacilitiesTable <- function(tblHf, mapHf, mapMerged, mapPop = NULL, ma
   #
   # merge accessmod table with attribute table
   #
-  print(sprintf("[debug] amValidateFacilitiesTable: pre-merge nrow(tblHf)=%d, nrow(tbl)=%d", nrow(tblHf), nrow(tbl)))
   tbl <- merge(tbl, tblHf, by = "cat")
-  print(sprintf("[debug] amValidateFacilitiesTable: post-merge nrow=%d", nrow(tbl)))
 
   tbl
 }
