@@ -1115,16 +1115,14 @@ amCreateFrictionMap <- function(tbl, mapMerged, mapFriction, mapResol) {
 ###### Facilities tools
 
 amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
-  # v.what.rast defaults to comma-separated output under GRASS 8 (main.c
-  # overrides G_OPT_F_SEP's standard "pipe" default). The parser below reads
-  # sep="|", so request pipe explicitly -- version-agnostic, restores the
-  # 7.8 output format. Without this, comma output parses as one column,
-  # every row is filtered out, and the facilities table silently empties.
+  # GRASS 8.4.2 v.what.rast -p prints pipe-separated "cat|value" and has NO
+  # separator option -- passing separator= raises "Invalid parameter name:
+  # separator", which aborts amValidateFacilitiesTable. The sep="|" parser
+  # below already matches 8.4.2's default output, so pass no separator arg.
   data <- execGRASS("v.what.rast",
     map = inputPoint,
     raster = inputRaster,
     flags = "p",
-    separator = "pipe",
     intern = TRUE
   )
   print(sprintf(
@@ -1344,11 +1342,11 @@ open_startup_logs <- function(name) {
   # capture, so error_log.txt stays silently empty. Route uncaught errors
   # through message() (which the sink does capture) and quit non-zero so
   # JobRunner still marks the job failed.
-  options(error = function(e) {
-    message("ERROR: ", conditionMessage(e))
-    if (!is.null(e$call)) {
-      message("Call: ", paste(deparse(e$call), collapse = " "))
-    }
+  # R calls options(error=) handlers with NO arguments; a function(e)
+  # signature dies with "argument e is missing", so it never reaches
+  # message()/quit() and the error stays silent. Use geterrmessage().
+  options(error = function() {
+    message("ERROR: ", geterrmessage())
     quit(save = "no", status = 1)
   })
   invisible(.errCon)
