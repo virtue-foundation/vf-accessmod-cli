@@ -26,6 +26,7 @@ jobs:
   # whose R can't run it. parse() is free: no package load, no GRASS.
   r-parse-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container: ghcr.io/virtue-foundation/vf-accessmod-cli_env:main
     steps:
       - name: Checkout repository
@@ -39,6 +40,7 @@ jobs:
   build:
     needs: r-parse-check
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: write

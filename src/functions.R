@@ -1108,6 +1108,10 @@ amCreateFrictionMap <- function(tbl, mapMerged, mapFriction, mapResol) {
 ###### Facilities tools
 
 amGetRasterValueAtPoint <- function(inputPoint, inputRaster) {
+  # GRASS 8.4.2 v.what.rast -p prints pipe-separated "cat|value" and has NO
+  # separator option -- passing separator= raises "Invalid parameter name:
+  # separator", which aborts amValidateFacilitiesTable. The sep="|" parser
+  # below already matches 8.4.2's default output, so pass no separator arg.
   data <- execGRASS("v.what.rast",
     map = inputPoint,
     raster = inputRaster,
@@ -1320,6 +1324,18 @@ open_startup_logs <- function(name) {
   sink(paste0("../logs/", name, ".log"), append = FALSE, split = TRUE, type = "output")
   .errCon <- file(paste0("../logs/", name, "_error.log"), open = "wt")
   sink(.errCon, type = "message")
+  # sink(type="message") captures message()/warning() but NOT top-level
+  # stop() errors -- R prints those to C-level stderr, which app.py does not
+  # capture, so error_log.txt stays silently empty. Route uncaught errors
+  # through message() (which the sink does capture) and quit non-zero so
+  # JobRunner still marks the job failed.
+  # R calls options(error=) handlers with NO arguments; a function(e)
+  # signature dies with "argument e is missing", so it never reaches
+  # message()/quit() and the error stays silent. Use geterrmessage().
+  options(error = function() {
+    message("ERROR: ", geterrmessage())
+    quit(save = "no", status = 1)
+  })
   invisible(.errCon)
 }
 
