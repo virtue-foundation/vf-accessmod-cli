@@ -20,9 +20,11 @@ import collections
 import csv
 import math
 import os
+import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from fractions import Fraction
 
 import geopandas as gpd
 import numpy as np
@@ -37,9 +39,86 @@ from .accessibility import check_options, read_surface
 ID = "xid"
 
 
+def _extended(q):
+    """A positive fraction rounded to x87 extended precision (64-bit mantissa, ties to even), which
+    is what R's long double holds on x86-64. Done in whole numbers so that every machine agrees."""
+    n, d = q.numerator, q.denominator
+    if n == 0:
+        return q
+    e = n.bit_length() - d.bit_length()
+    if (n >> e if e >= 0 else n << -e) < d:
+        e -= 1  # now 2^e <= q < 2^(e + 1)
+    shift = 63 - e
+    if shift >= 0:
+        n <<= shift
+    else:
+        d <<= -shift
+    m, rest = divmod(n, d)
+    if 2 * rest > d or (2 * rest == d and m & 1):
+        m += 1
+    return Fraction(m) / (Fraction(2) ** shift)
+
+
+_NUMBER = re.compile(r"^(-?)(\d*)\.?(\d*)(?:[eE]([-+]?\d+))?$")
+
+
+def r_parse(text):
+    """A decimal number as R reads it (R_strtod): the digits as a whole number, scaled by a power
+    of ten in extended precision, then stored as a double. The two roundings make it differ from
+    the nearest double by one last bit about once in two thousand numbers."""
+    match = _NUMBER.match(text)
+    if match is None:  # not a number, infinite
+        return float(text)
+    sign, whole, decimals, exponent = match.groups()
+    digits = int(whole + decimals or "0")
+    power = int(exponent or 0) - len(decimals)
+    value = Fraction(digits) * Fraction(10) ** power
+    return float(_extended(value)) * (-1.0 if sign else 1.0)
+
+
 def r_text(x):
-    """A number after R has written it into text (15 significant digits) and GRASS read it back."""
-    return float(f"{x:.15g}")
+    """A number after GRASS has printed it (15 significant digits) and R has read it back."""
+    return r_parse(f"{x:.15g}")
+
+
+def r_cumsum(values):
+    """R's cumsum: the running total is kept in extended precision, each step stored as a double."""
+    total, out = Fraction(0), np.empty(len(values), dtype=np.float64)
+    for i, v in enumerate(values):
+        total = _extended(total + Fraction(float(v)))
+        out[i] = float(total)
+    return out
+
+
+def r_digits(x):
+    """How many significant digits R writes for a number (at most 15). R scales the number to a
+    15-digit integer in extended precision, rounds it and drops the trailing zeros (formatReal's
+    scientific()); the digits it then prints are the correctly rounded ones for that count. Near a
+    tie in the 15th digit this is not the same text as a plain 15-digit rounding."""
+    r = abs(float(x))
+    if r == 0 or not math.isfinite(r):
+        return 1
+    kp = math.floor(math.log10(r)) - 14
+    # the table of powers of ten in R's format.c holds double constants
+    ten = Fraction(float(f"1e{abs(kp)}")) if abs(kp) <= 27 else Fraction(10) ** abs(kp)
+    scaled = _extended(Fraction(r) / ten if kp > 0 else Fraction(r) * ten)
+    if scaled < 10**14:
+        scaled = _extended(scaled * 10)
+    alpha, rest = divmod(scaled.numerator, scaled.denominator)
+    if 2 * rest > scaled.denominator or (2 * rest == scaled.denominator and alpha & 1):
+        alpha += 1
+    digits = 15
+    while digits > 1 and alpha % 10 == 0:
+        alpha //= 10
+        digits -= 1
+    return digits
+
+
+def r_number(x):
+    """A number after R has written it into text and GRASS has read it back. (R 4.1's rule, which
+    wrote the stored results; R 4.3 and later round plainly here, about one number in 200,000
+    differs.)"""
+    return float(f"{x:.{r_digits(x)}g}")
 
 
 def processing_order(table, order_col):
@@ -120,7 +199,7 @@ def write_r_csv(path, columns, rows, row_names):
             return '"' + v.replace('"', '""') + '"'
         if isinstance(v, (int, np.integer)):
             return str(int(v))
-        return "0" if v == 0 else f"{float(v):.15g}"
+        return "0" if v == 0 else f"{float(v):.{r_digits(v)}g}"
 
     with open(path, "w", newline="") as f:
         f.write(",".join(['""'] + ['"' + c + '"' for c in columns]) + "\n")
@@ -439,8 +518,7 @@ def run(
                 if zones.size:
                     # r.univar prints each band's sum with 15 significant digits and R works from that text
                     band = np.array([r_text(v) for v in band_all[zones]])
-                    # R's cumsum adds in extended precision and stores each step as a double
-                    cum = np.cumsum(band.astype(np.longdouble)).astype(np.float64)
+                    cum = r_cumsum(band)
                     result = allocate(
                         zones, band, cum, capacity, ignore_capacity, max_time
                     )
@@ -451,7 +529,7 @@ def run(
                         window[ring] = 0.0
                     if result["outer"] is not None:
                         ring = tt == result["outer"]
-                        ratio = r_text(result["ratio"])
+                        ratio = r_number(result["ratio"])
                         old = window[ring]
                         new = old - old * ratio
                         removed += float(np.nansum(old) - np.nansum(new))

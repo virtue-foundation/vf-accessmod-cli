@@ -268,6 +268,28 @@ def test_threads_and_windows_do_not_change_the_results(region, monkeypatch):
         assert all(x.equals(y) for x, y in zip(a.geometry, b.geometry))
 
 
+def test_numbers_written_the_way_r_writes_them():
+    assert coverage.r_digits(0.1) == 1
+    assert coverage.r_digits(123456.5) == 7
+    assert coverage.r_digits(1 / 3) == 15
+    assert coverage.r_digits(0.0) == 1
+    assert coverage.r_number(0.1 + 0.2) == 0.3
+    assert coverage.r_number(2 / 3) == 0.666666666666667
+    assert coverage.r_parse("0.1") == 0.1 and coverage.r_parse("-12.5") == -12.5
+    assert math.isnan(coverage.r_text(math.nan))
+    assert (
+        coverage.r_parse("1e-05") == 1e-05
+        and coverage.r_parse("123456789012345") == 123456789012345.0
+    )
+    # R rounds twice when it reads a number: one last bit away from the nearest double here
+    assert coverage.r_parse("4898.24730468189") == math.nextafter(
+        4898.24730468189, math.inf
+    )
+    # trailing zeros of the 15-digit rounding are dropped, then the shorter text is rounded again
+    assert coverage.r_digits(0.83361041873170996) == 14
+    assert coverage.r_number(0.83361041873170996) == 0.83361041873171
+
+
 def test_what_the_engine_does_not_do_is_refused():
     with pytest.raises(NotImplementedError):
         accessibility.check_options("isotropic", False)

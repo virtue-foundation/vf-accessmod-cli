@@ -19,7 +19,8 @@ statistics as `grass`, cell for cell (checked against stored production results 
 Burundi, Lesotho, Togo and Senegal, where coverage took 42 to 149 s against 413 to 2,445 s).
 Known differences: two reporting columns of the capacity table (`amPopCoveredPercent`,
 `amCorrPopTime`) agree to about nine digits, the `*report.txt` and log files of the R scripts
-are not written, and identical results need an x86-64 machine (R's extended-precision sums).
+are not written. R's extended-precision steps are done in whole-number arithmetic, so the results
+are the same on any machine.
 
 In the coverage analysis `native` searches several facilities' travel times at once, one thread
 per processor unless `ACCESSMOD_THREADS` says otherwise (fewer when memory is short); the results
