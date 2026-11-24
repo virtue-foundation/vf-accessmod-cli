@@ -21,6 +21,12 @@ Known differences: two reporting columns of the capacity table (`amPopCoveredPer
 `amCorrPopTime`) agree to about nine digits, the `*report.txt` and log files of the R scripts
 are not written, and identical results need an x86-64 machine (R's extended-precision sums).
 
+`ACCESSMOD_COVERAGE_DIRECTION` sets the travel direction of the coverage analysis for both
+engines: `to` the facilities (default, as in AccessMod 5) or `from` them. Up to v2.0.0 the
+coverage analysis always travelled from the facilities, because the script compared `"toHF"`
+with `"toHf"`; `from` reproduces those results. On the five countries above the national
+coverage moves by 0.01 point at most; small zones move more where capacity is short.
+
 ## Testing
 
 ### Pre-commit hooks

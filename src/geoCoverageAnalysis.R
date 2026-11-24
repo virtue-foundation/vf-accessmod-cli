@@ -105,6 +105,10 @@ option_list <- list(
     type = "character", default = NULL,
     help = "Name of column in admin boundaries table that contains zone name", metavar = "character"
   ),
+  make_option("--direction",
+    type = "character", default = "to",
+    help = "Travel direction: 'to' the facilities (default) or 'from' them"
+  ),
 
   # Diagnostic
   make_option("--debug_print",
@@ -156,6 +160,11 @@ input_f_name_col <- opt$f_name
 input_max_time <- opt$max_time
 input_knights_move <- opt$knights_move
 input_f_subset_col <- opt$f_subset
+input_direction <- opt$direction
+if (!(input_direction %in% c("to", "from"))) {
+  print("Check your input args: direction must be one of: to, from")
+  stop()
+}
 
 ignoreCapacity <- FALSE
 input_f_capacity_col <- opt$f_capacity
@@ -327,7 +336,7 @@ orderField <- input_f_order_col
 # parameters
 maxTravelTime <- input_max_time
 maxTravelTimeOrder <- 120
-dirAnalysis <- "toHF"
+dirAnalysis <- ifelse(input_direction == "from", "fromHf", "toHf")
 typeAnalysis <- input_analysis_type
 keepFullHfTable <- FALSE
 # logic

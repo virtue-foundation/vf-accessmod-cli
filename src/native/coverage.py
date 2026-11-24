@@ -7,7 +7,7 @@ Same rules and output files as geoCoverageAnalysis.R (amCapacityAnalysis, amCatc
     <name>_zonal_stats_<subset>.csv        coverage by admin zone (when zones are given)
 
 Each facility's work is done on the cells it reaches, not on the whole raster. Travel time is
-computed away from the facility, as the R engine does for this analysis.
+computed towards the facility unless the direction is "from".
 """
 
 import argparse
@@ -204,6 +204,7 @@ def run(
     zonal_col=None,
     knights_move=False,
     analysis_type="anisotropic",
+    towards_facilities=True,
 ):
     check_options(analysis_type, knights_move)
     timings = {"travel time": 0.0, "allocation": 0.0, "catchments": 0.0}
@@ -287,7 +288,7 @@ def run(
             transform.a,
             -transform.e,
             max_cost,
-            False,
+            towards_facilities,
             cost,
             visited,
             touched,
@@ -481,6 +482,7 @@ def main(argv=None):
     p.add_argument("--f_subset", default="all")
     p.add_argument("--f_capacity")
     p.add_argument("--zonal_column")
+    p.add_argument("--direction", choices=["to", "from"], default="to")
     p.add_argument("--debug_print", action="store_true")
     a = p.parse_args(argv)
     if (a.admin is None) != (a.zonal_column is None):
@@ -503,6 +505,7 @@ def main(argv=None):
             a.zonal_column,
             a.knights_move,
             a.analysis_type,
+            a.direction == "to",
         )
     )
 

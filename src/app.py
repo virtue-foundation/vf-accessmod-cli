@@ -29,6 +29,9 @@ _REGION_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
 # default) or "native" (the in-memory engine in src/native). Land cover merging is always R.
 ENGINE_ENV = "ACCESSMOD_ENGINE"
 ENGINES = ("grass", "native")
+# Travel direction of the coverage analysis: "to" the facilities (the default) or "from" them.
+DIRECTION_ENV = "ACCESSMOD_COVERAGE_DIRECTION"
+DIRECTIONS = ("to", "from")
 
 
 def _setting(name, allowed):
@@ -154,6 +157,7 @@ job_runner = JobRunner()
 
 # a wrong setting stops the app at start, not at the first request
 _setting(ENGINE_ENV, ENGINES)
+_setting(DIRECTION_ENV, DIRECTIONS)
 
 
 def allowed_file(filename):
@@ -294,6 +298,7 @@ def run_coverage_analysis(
     process.extend(["--f_order", processing_order_column])
     process.extend(["--f_name", facility_name_column])
     process.extend(["--max_time", str(max_travel_time)])
+    process.extend(["--direction", _setting(DIRECTION_ENV, DIRECTIONS)])
     if capacity_column:
         process.extend(["--f_capacity", capacity_column])
     if gadm_level is not None:

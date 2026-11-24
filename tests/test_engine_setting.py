@@ -4,7 +4,7 @@ import sys
 import pytest
 
 import app as app_module
-from app import ENGINE_ENV, selected_engine
+from app import DIRECTION_ENV, ENGINE_ENV, _setting, selected_engine
 
 
 @pytest.fixture
@@ -14,6 +14,7 @@ def commands(monkeypatch):
     monkeypatch.setattr(app_module.os, "makedirs", lambda *args, **kwargs: None)
     monkeypatch.setattr(app_module.job_runner, "tracked_subprocess", seen.append)
     monkeypatch.delenv(ENGINE_ENV, raising=False)
+    monkeypatch.delenv(DIRECTION_ENV, raising=False)
     return seen
 
 
@@ -55,6 +56,16 @@ def test_native_engine_leaves_what_it_does_not_do_to_r(commands, monkeypatch, op
     assert selected_engine(**options) == "grass"
 
 
+def test_coverage_direction(commands, monkeypatch):
+    _coverage()
+    monkeypatch.setenv(DIRECTION_ENV, "from")
+    _coverage()
+    app_module.run_accessibility_analysis("RWA")
+    assert commands[0][commands[0].index("--direction") + 1] == "to"
+    assert commands[1][commands[1].index("--direction") + 1] == "from"
+    assert "--direction" not in commands[2]
+
+
 def test_setting_reads_case_and_blanks(monkeypatch):
     monkeypatch.setenv(ENGINE_ENV, " Native ")
     assert selected_engine() == "native"
@@ -66,3 +77,6 @@ def test_unknown_setting_is_refused(monkeypatch):
     monkeypatch.setenv(ENGINE_ENV, "fast")
     with pytest.raises(ValueError, match=ENGINE_ENV):
         selected_engine()
+    monkeypatch.setenv(DIRECTION_ENV, "toHF")
+    with pytest.raises(ValueError, match=DIRECTION_ENV):
+        _setting(DIRECTION_ENV, app_module.DIRECTIONS)
