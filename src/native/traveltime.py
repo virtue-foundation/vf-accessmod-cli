@@ -22,7 +22,7 @@ _KIND = np.array(
 )  # 0 east-west, 1 north-south, 2 diagonal
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=True, error_model="numpy", nogil=True)
 def _newton(aero, hw, tr, tran, p):
     """bicycleSpeed.h newton(): single precision, as in C."""
     vel = np.float32(20.0)
@@ -44,7 +44,7 @@ def _newton(aero, hw, tr, tran, p):
     return np.float32(0.0)
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=True, error_model="numpy", nogil=True)
 def _bicycle_speed(speed, slope):
     """bicycleSpeed.h bicycleSpeed(): km/h on a slope for a rider doing `speed` on the flat."""
     speed = np.float32(speed)
@@ -78,7 +78,7 @@ def _bicycle_speed(speed, slope):
     )
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=True, error_model="numpy", nogil=True)
 def _mode_speed(mode, speed, slope):
     """timeCostManager.h modSwitcher(): km/h for a mode on a slope (rise over run)."""
     if mode == 1:
@@ -96,7 +96,7 @@ def _mode_speed(mode, speed, slope):
     return 0.0
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=True, error_model="numpy", nogil=True)
 def _step_cost(here, there, slope, dist, toward):
     """timeCostManager.h costManager() without the knight's move: seconds, NaN when impassable."""
     if toward:
@@ -106,15 +106,22 @@ def _step_cost(here, there, slope, dist, toward):
     mode_adj = math.floor(there / 1e6)
     speed_adj = (there - mode_adj * 1e6) / 1e3
     div = dist / 2000
-    cost = 1 / (_mode_speed(mode, speed, slope) / div) + 1 / (
-        _mode_speed(mode_adj, speed_adj, slope) / div
-    )
+    if mode == 1 and mode_adj == 1:
+        # two walkers on one slope: the slope's factor is the same number, computed once
+        factor = math.exp(-3.5 * abs(slope + 0.05))
+        cost = 1 / (factor * (speed / math.exp(-0.175)) / div) + 1 / (
+            factor * (speed_adj / math.exp(-0.175)) / div
+        )
+    else:
+        cost = 1 / (_mode_speed(mode, speed, slope) / div) + 1 / (
+            _mode_speed(mode_adj, speed_adj, slope) / div
+        )
     if cost == math.inf:
         return math.nan
     return cost * 3600
 
 
-@njit(cache=True, error_model="numpy")
+@njit(cache=True, error_model="numpy", nogil=True)
 def cumulative_cost(
     speed,
     dtm,

@@ -21,6 +21,10 @@ Known differences: two reporting columns of the capacity table (`amPopCoveredPer
 `amCorrPopTime`) agree to about nine digits, the `*report.txt` and log files of the R scripts
 are not written, and identical results need an x86-64 machine (R's extended-precision sums).
 
+In the coverage analysis `native` searches several facilities' travel times at once, one thread
+per processor unless `ACCESSMOD_THREADS` says otherwise (fewer when memory is short); the results
+do not depend on the number of threads.
+
 `ACCESSMOD_COVERAGE_DIRECTION` sets the travel direction of the coverage analysis for both
 engines: `to` the facilities (default, as in AccessMod 5) or `from` them. Up to v2.0.0 the
 coverage analysis always travelled from the facilities, because the script compared `"toHF"`

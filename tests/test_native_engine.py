@@ -223,6 +223,51 @@ def test_coverage_shares_the_population_out(region):
     assert set(catchments.columns) == {"length", "xid", "name", "type", "geometry"}
 
 
+def test_threads_and_windows_do_not_change_the_results(region, monkeypatch):
+    paths, out = region
+    slow = str(out / "slow.csv")
+    with open(slow, "w") as f:
+        f.write("class,label,speed,mode\n2,Grass,4,WALKING\n5,Road,6,MOTORIZED\n")
+
+    def run(tag, threads):
+        coverage.run(
+            paths["lcv.tif"],
+            paths["dem.tif"],
+            paths["pop.tif"],
+            slow,
+            paths["hf.gpkg"],
+            "T",
+            str(out / tag),
+            "vfmRelevanceScore",
+            "name",
+            10,
+            "w_x",
+            "beds",
+            paths["admin.gpkg"],
+            "NAME_1",
+            threads=threads,
+        )
+
+    # ten minutes at 6 km/h is ten cells: each search runs on a window smaller than the grid
+    assert coverage.reach_radius(speedmap.read_scenarios(slow), 10, CELL) == 12
+    run("one", 1)
+    run("four", 4)
+    monkeypatch.setattr(coverage, "reach_radius", lambda *args: 10_000)
+    run("whole", 2)
+    for other in ("four", "whole"):
+        for name in ("T_coverage_analysis_w_x.csv", "T_zonal_stats_w_x.csv"):
+            assert (out / other / name).read_text() == (out / "one" / name).read_text()
+        with (
+            rasterio.open(out / other / "T_pop_resid_w_x.tif") as a,
+            rasterio.open(out / "one" / "T_pop_resid_w_x.tif") as b,
+        ):
+            assert np.array_equal(a.read(1), b.read(1), equal_nan=True)
+        a = gpd.read_file(out / other / "T_catchment_w_x.gpkg")
+        b = gpd.read_file(out / "one" / "T_catchment_w_x.gpkg")
+        assert a["xid"].tolist() == b["xid"].tolist()
+        assert all(x.equals(y) for x, y in zip(a.geometry, b.geometry))
+
+
 def test_what_the_engine_does_not_do_is_refused():
     with pytest.raises(NotImplementedError):
         accessibility.check_options("isotropic", False)
