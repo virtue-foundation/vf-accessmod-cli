@@ -4,6 +4,23 @@ A GUI-less rewrite of the WHO's [Accessmod 5](https://github.com/unige-geohealth
 
 _This software is a modified version of the World Health Organization's "Accessmod ver, 5" software. This software is not the product of, is not provided by, and is not endorsed or affiliated with, the World Health Organization. The original AccessMod ver. 5 software is © the World Health Organization.
 
+## Engines
+
+The accessibility and coverage analyses have two engines. The container's `ACCESSMOD_ENGINE`
+environment variable chooses one; requests, output files and their names are the same.
+
+- `grass` (default): the R scripts over GRASS.
+- `native`: the in-memory engine in `src/native` (Python, numba). It does the anisotropic
+  analysis without the knight's move; a request for the isotropic analysis or the knight's move
+  runs on the R scripts whatever the setting. Land cover merging always runs on the R scripts.
+
+`native` writes the same travel-time raster, speed raster, population left, catchments and zonal
+statistics as `grass`, cell for cell (checked against stored production results of Rwanda,
+Burundi, Lesotho, Togo and Senegal, where coverage took 42 to 149 s against 413 to 2,445 s).
+Known differences: two reporting columns of the capacity table (`amPopCoveredPercent`,
+`amCorrPopTime`) agree to about nine digits, the `*report.txt` and log files of the R scripts
+are not written, and identical results need an x86-64 machine (R's extended-precision sums).
+
 ## Testing
 
 ### Pre-commit hooks

@@ -29,6 +29,12 @@ Run inside the env container (devcontainer uses the same env image); GRASS and R
 - **R linters** (`style-files`, `lintr`) and `ruff` run via pre-commit hooks on commit.
 - The R entrypoints (`accessibilityAnalysis.R`, `geoCoverageAnalysis.R`, `mergeLandCover.R`) are **not** covered by unit tests — only integration-tested inside the GRASS container.
 
+## Two engines
+
+- `ACCESSMOD_ENGINE` (container environment): `grass` (default, the R scripts) or `native` (`src/native`, Python + numba, no GRASS). `app.py`'s `selected_engine` / `_analysis_command` choose per request; the knight's move and the isotropic analysis always go to R. Both engines take the **same command-line options** (`src/run_native.py accessibility|coverage ...` mirrors the R scripts), so a new flag goes into the R `make_option` list, the Python builder **and** `src/native/*.py`'s `main()`.
+- `src/native` reproduces the R engine's results cell for cell, including its quirks (numbers passing through 15-digit text, R's extended-precision `cumsum`, facility order by `cat` read as text, the lowest zone number where admin polygons overlap). Each is commented where it is reproduced; do not "simplify" them without re-running the comparison against stored results.
+- `tests/test_native_engine.py` skips where numba / rasterio / geopandas are not installed (the env image has them once rebuilt from `pyproject.toml`).
+
 ## App runtime conventions (`src/app.py`)
 
 - Endpoints: `POST /merge_landcover`, `POST /accessibility_analysis`, `POST /coverage_analysis`, `GET /check`, `GET|POST /file_transfer`.
