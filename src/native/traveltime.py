@@ -263,6 +263,84 @@ def cumulative_cost(
     return n_touched
 
 
+@njit(cache=True, error_model="numpy", nogil=True)
+def reached_minutes(cost, visited, touched, n, width, max_cost):
+    """After a search on a window `width` cells wide: the box of cells reached within `max_cost`
+    seconds as whole minutes (-1 elsewhere), with the box's first row and column in the window,
+    and the search's buffers put back as they were. An empty array when no cell is reached."""
+    r_min = c_min = np.int64(1) << 62
+    r_max = c_max = np.int64(-1)
+    for k in range(n):
+        cell = touched[k]
+        if cost[cell] <= max_cost:
+            r = cell // width
+            c = cell - r * width
+            r_min, r_max = min(r_min, r), max(r_max, r)
+            c_min, c_max = min(c_min, c), max(c_max, c)
+    if r_max < 0:
+        for k in range(n):
+            cost[touched[k]] = math.nan
+            visited[touched[k]] = False
+        return 0, 0, np.empty((0, 0), dtype=np.int32)
+    minutes = np.full((r_max - r_min + 1, c_max - c_min + 1), -1, dtype=np.int32)
+    for k in range(n):
+        cell = touched[k]
+        seconds = cost[cell]
+        if seconds <= max_cost:
+            r = cell // width
+            minutes[r - r_min, cell - r * width - c_min] = np.int32(
+                math.floor(seconds / 60.0)
+            )
+        cost[cell] = math.nan
+        visited[cell] = False
+    return r_min, c_min, minutes
+
+
+@njit(cache=True, error_model="numpy", nogil=True)
+def band_sums(minutes, values, bands):
+    """The sum and the number of cells with a value for each minute band, cells taken row by row
+    (the order r.univar adds them in)."""
+    sums = np.zeros(bands, dtype=np.float64)
+    counts = np.zeros(bands, dtype=np.int64)
+    for i in range(minutes.shape[0]):
+        for j in range(minutes.shape[1]):
+            t = minutes[i, j]
+            if t >= 0:
+                v = values[i, j]
+                if not math.isnan(v):
+                    sums[t] += v
+                    counts[t] += 1
+    return sums, counts
+
+
+@njit(cache=True, error_model="numpy", nogil=True)
+def take(minutes, values, inner, outer, ratio):
+    """Empty the bands up to `inner` minutes (-1: none) and reduce the band `outer` (-1: none) by
+    `ratio`, in place. Returns the amount taken off."""
+    emptied = 0.0
+    before = 0.0
+    after = 0.0
+    for i in range(minutes.shape[0]):
+        for j in range(minutes.shape[1]):
+            t = minutes[i, j]
+            if t < 0:
+                continue
+            if t <= inner:
+                v = values[i, j]
+                if not math.isnan(v):
+                    emptied += v
+                values[i, j] = 0.0
+            elif t == outer:
+                old = values[i, j]
+                new = old - old * ratio
+                if not math.isnan(old):
+                    before += old
+                if not math.isnan(new):
+                    after += new
+                values[i, j] = new
+    return emptied + (before - after)
+
+
 INT16_MAX = 32767
 
 
