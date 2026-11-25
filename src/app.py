@@ -2,6 +2,7 @@ import functools
 import os
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from threading import Lock, Thread
 
@@ -23,6 +24,45 @@ def _handle_job_conflict(_error):
 
 
 _REGION_RE = re.compile(r"^[A-Za-z0-9_-]+\Z")
+
+# Which engine runs the accessibility and coverage analyses: "grass" (the R scripts, the
+# default) or "native" (the in-memory engine in src/native). Land cover merging is always R.
+ENGINE_ENV = "ACCESSMOD_ENGINE"
+ENGINES = ("grass", "native")
+# Travel direction of the coverage analysis: "to" the facilities (the default) or "from" them.
+DIRECTION_ENV = "ACCESSMOD_COVERAGE_DIRECTION"
+DIRECTIONS = ("to", "from")
+
+
+def _setting(name, allowed):
+    value = os.environ.get(name, "").strip().lower() or allowed[0]
+    if value not in allowed:
+        raise ValueError(f"{name} must be one of {', '.join(allowed)}; got {value!r}")
+    return value
+
+
+def selected_engine(knights_move=False, anisotropic=True):
+    """The engine for one request. The in-memory engine does the anisotropic analysis without
+    the knight's move; any other request goes to the R scripts."""
+    engine = _setting(ENGINE_ENV, ENGINES)
+    if engine == "native" and (knights_move or not anisotropic):
+        return "grass"
+    return engine
+
+
+def _analysis_command(engine, analysis):
+    """The start of the command line; both engines take the same options after it."""
+    if engine == "native":
+        return [
+            sys.executable,
+            os.path.join(job_runner.source_path, "run_native.py"),
+            analysis,
+        ]
+    script = {
+        "accessibility": "accessibilityAnalysis.R",
+        "coverage": "geoCoverageAnalysis.R",
+    }[analysis]
+    return ["Rscript", os.path.join(job_runner.source_path, script)]
 
 
 class InvalidRegionStringError(ValueError):
@@ -114,6 +154,10 @@ def _run_job_in_thread(job, target, args):
 
 _job_lock = Lock()
 job_runner = JobRunner()
+
+# a wrong setting stops the app at start, not at the first request
+_setting(ENGINE_ENV, ENGINES)
+_setting(DIRECTION_ENV, DIRECTIONS)
 
 
 def allowed_file(filename):
@@ -222,10 +266,9 @@ def run_accessibility_analysis(
     region_string, facilities_subset=None, knights_move=False, anisotropic=True
 ):
     paths = FilePathHandler(region_string)
-    process = [
-        "Rscript",
-        os.path.join(job_runner.source_path, "accessibilityAnalysis.R"),
-    ]
+    process = _analysis_command(
+        selected_engine(knights_move, anisotropic), "accessibility"
+    )
     _add_accessibility_arguments(
         paths, process, facilities_subset, knights_move, anisotropic
     )
@@ -247,7 +290,7 @@ def run_coverage_analysis(
     processing_order_column = "vfmRelevanceScore"
     facility_name_column = "name"
     paths = FilePathHandler(region_string)
-    process = ["Rscript", os.path.join(job_runner.source_path, "geoCoverageAnalysis.R")]
+    process = _analysis_command(selected_engine(knights_move, anisotropic), "coverage")
     _add_accessibility_arguments(
         paths, process, facilities_subset, knights_move, anisotropic
     )
@@ -255,6 +298,7 @@ def run_coverage_analysis(
     process.extend(["--f_order", processing_order_column])
     process.extend(["--f_name", facility_name_column])
     process.extend(["--max_time", str(max_travel_time)])
+    process.extend(["--direction", _setting(DIRECTION_ENV, DIRECTIONS)])
     if capacity_column:
         process.extend(["--f_capacity", capacity_column])
     if gadm_level is not None:
